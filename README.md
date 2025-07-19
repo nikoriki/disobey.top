@@ -4,7 +4,7 @@ made fully with electron and js
 
 how to compile and make an exe out of it:
 
-npm instal
+npm install
 
 npm start
 
