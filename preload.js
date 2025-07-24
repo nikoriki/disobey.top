@@ -1,117 +1,112 @@
-// preload.js - Electron Preload Process
+// preload.js - electron preload process
 
-console.log("Preload script started execution."); // Debug log: Confirm preload script is running
+console.log("preload script started execution."); // debug log: confirm preload script is running
 
 const { contextBridge, ipcRenderer } = require('electron');
 
-// Expose Electron APIs to the renderer process
+// expose electron apis to the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
-    // Window controls
+    // window controls
     minimizeWindow: () => {
-        console.log("Preload: Sending minimize-window IPC."); // Debug log
+        console.log("preload: sending minimize-window ipc."); // debug log
         ipcRenderer.send('minimize-window');
     },
     maximizeWindow: () => {
-        console.log("Preload: Sending maximize-window IPC."); // Debug log
+        console.log("preload: sending maximize-window ipc."); // debug log
         ipcRenderer.send('maximize-window');
     },
     closeWindow: () => {
-        console.log("Preload: Sending close-window IPC."); // Debug log
+        console.log("preload: sending close-window ipc."); // debug log
         ipcRenderer.send('close-window');
     },
 
-    // Dialogs
+    // dialogs
     openFolderDialog: () => {
-        console.log("Preload: Invoking open-folder-dialog IPC."); // Debug log
+        console.log("preload: invoking open-folder-dialog ipc."); // debug log
         return ipcRenderer.invoke('open-folder-dialog');
     },
     openFileDialog: (filters) => {
-        console.log("Preload: Invoking open-file-dialog IPC with filters:", filters); // Debug log
+        console.log("preload: invoking open-file-dialog ipc with filters:", filters); // debug log
         return ipcRenderer.invoke('open-file-dialog', filters);
     },
 
-    // Settings
+    // settings
     saveSettings: (settings) => {
-        console.log("Preload: Invoking save-settings IPC."); // Debug log
+        console.log("preload: invoking save-settings ipc."); // debug log
         return ipcRenderer.invoke('save-settings', settings);
     },
     loadSettings: () => {
-        console.log("Preload: Invoking load-settings IPC."); // Debug log
+        console.log("preload: invoking load-settings ipc."); // debug log
         return ipcRenderer.invoke('load-settings');
     },
 
-    // Theme Management
-    getThemes: () => {
-        console.log("Preload: Invoking get-themes IPC.");
-        return ipcRenderer.invoke('get-themes');
-    },
-    loadTheme: (themeName) => {
-        console.log(`Preload: Invoking load-theme IPC for ${themeName}.`);
-        return ipcRenderer.invoke('load-theme', themeName);
-    },
-
-    // Discord RPC
+    // discord rpc
     setRpcStatus: (enabled) => {
         ipcRenderer.send('set-rpc-status', { enabled });
     },
 
-    // Mod Management
+    // mod management
     getInstalledMods: () => {
-        console.log("Preload: Invoking get-installed-mods IPC."); // Debug log
+        console.log("preload: invoking get-installed-mods ipc."); // debug log
         return ipcRenderer.invoke('get-installed-mods');
     },
     getAvailableMods: () => {
-        console.log("Preload: Invoking get-available-mods IPC."); // Debug log
+        console.log("preload: invoking get-available-mods ipc."); // debug log
         return ipcRenderer.invoke('get-available-mods');
     },
     installMod: (modName, modPath) => {
-        console.log("Preload: Invoking install-mod IPC."); // Debug log
+        console.log("preload: invoking install-mod ipc."); // debug log
         return ipcRenderer.invoke('install-mod', modName, modPath);
     },
     uninstallMod: (modName) => {
-        console.log("Preload: Invoking uninstall-mod IPC."); // Debug log
+        console.log("preload: invoking uninstall-mod ipc."); // debug log
         return ipcRenderer.invoke('uninstall-mod', modName);
     },
     uninstallAllMods: () => {
-        console.log("Preload: Invoking uninstall-all-mods IPC."); // Debug log
+        console.log("preload: invoking uninstall-all-mods ipc."); // debug log
         return ipcRenderer.invoke('uninstall-all-mods');
     },
 
-    // Conversor
+    // conversor
     convertToMmpackage: (modName, filePaths) => {
-        console.log("Preload: Invoking convert-to-mmpackage IPC."); // Debug log
+        console.log("preload: invoking convert-to-mmpackage ipc."); // debug log
         return ipcRenderer.invoke('convert-to-mmpackage', modName, filePaths);
     },
 
-    // Updates
+    // updates
     triggerUpdateCheck: () => {
-        console.log("Preload: Invoking trigger-update-check IPC."); // Debug log
-        return ipcRenderer.invoke('trigger-update-check');
+        console.log("preload: sending trigger-update-check ipc."); // debug log
+        ipcRenderer.send('trigger-update-check');
     },
     openUpdateUrl: () => {
-        console.log("Preload: Invoking open-update-url IPC."); // Debug log
+        console.log("preload: invoking open-update-url ipc."); // debug log
         return ipcRenderer.invoke('open-update-url');
     },
     getAppVersion: () => {
-        console.log("Preload: Invoking get-app-version IPC."); // Debug log
+        console.log("preload: invoking get-app-version ipc."); // debug log
         return ipcRenderer.invoke('get-app-version');
     },
 
-    // Console logging from main process
+    // console logging from main process
     onLogMessage: (callback) => {
-        console.log("Preload: Setting up onLogMessage listener."); // Debug log
+        console.log("preload: setting up onlogmessage listener."); // debug log
         ipcRenderer.on('log-message', (event, message) => callback(message));
     },
 
-    // Update notifications from main process
+    // update notifications from main process
     onUpdateAvailable: (callback) => {
-        console.log("Preload: Setting up onUpdateAvailable listener."); // Debug log
+        console.log("preload: setting up onupdateavailable listener."); // debug log
         ipcRenderer.on('update-available', (event, data) => callback(data));
     },
     onNoUpdateAvailable: (callback) => {
-        console.log("Preload: Setting up onNoUpdateAvailable listener."); // Debug log
+        console.log("preload: setting up onnoupdateavailable listener."); // debug log
         ipcRenderer.on('no-update-available', (event, data) => callback(data));
+    },
+    
+    // signal that renderer is ready
+    rendererReady: () => {
+        ipcRenderer.send('renderer-ready');
     }
 });
 
-console.log("Preload script finished exposing electronAPI."); // Debug log: Confirm exposure completed
+console.log("preload script finished exposing electronapi."); // debug log: confirm exposure completed
