@@ -1,202 +1,319 @@
-// renderer.js - Electron Renderer Process
-console.log("Renderer script loaded."); // Debug log: Initial load confirmation
+// renderer.js - electron renderer process
+console.log("renderer script loaded."); // debug log: initial load confirmation
 
 const consoleOutput = document.getElementById('console-output');
 const appVersionSpan = document.getElementById('app-version');
 let currentSettings = {
     modFolderPath: '',
     pakFolderPath: '',
-    language: 'English',
-    platform: 'Steam',
-    theme: 'Default',
+    language: 'english',
+    platform: 'steam',
     discordRpcEnabled: true
 };
-let installedModsData = {}; // Stores the data about installed mods from main process
+let installedModsData = {}; // stores the data about installed mods from main process
 
-// --- Localization Data ---
+// --- localization data ---
 const translations = {
-    English: {
-        'home-dashboard-title': 'Dashboard',
-        'home-greeting': 'Welcome back!',
-        'home-install-mods-title': 'Install Mods',
-        'home-install-mods-desc': 'Browse and install new mods.',
-        'home-conversor-title': 'Conversor',
-        'home-conversor-desc': 'Convert your files to .mmpackage.',
-        'home-settings-title': 'Settings',
-        'home-settings-desc': 'Configure paths and preferences.',
-        'home-update-status-title': 'Update Status',
-        'home-platform-title': 'Platform',
-        'update-available': 'Update Available!',
-        'up-to-date': 'Up to Date',
-        'mods-title': 'Mods',
-        'install-mods-button': 'Install Mods',
-        'no-mods-installed': 'No mods installed yet.',
-        'settings-title': 'Settings',
-        'mod-folder-path-label': 'Mod Folder Path:',
-        'pak-folder-path-label': 'PAK Folder Path:',
-        'browse-button': 'Browse',
-        'language-label': 'Language:',
-        'platform-label': 'Platform:',
-        'uninstall-all-mods-button': 'Uninstall All Mods',
-        'console-title': 'Console Output',
-        'confirm-action-title': 'Confirm Action',
-        'confirm-uninstall-all-mods-message': 'Are you sure you want to uninstall ALL non-base mods from your PAK folder? This action cannot be undone.',
-        'yes-button': 'Yes',
-        'no-button': 'No',
-        'success-title': 'Success',
-        'error-title': 'Error',
-        'pak-folder-not-set': 'PAK folder path is not set. Cannot install/uninstall mods.',
-        'mod-folder-not-set': 'Mod folder path is not set. Cannot list available mods.',
-        'select-mods-title': 'Select Mods to Install',
-        'no-available-mods': 'No .mmpackage mods found in the selected mod folder.',
-        'install-button': 'Install',
-        'installed-button': 'Installed',
-        'uninstall-button': 'Uninstall',
-        'installing-button': 'Installing...',
-        'confirm-uninstall-mod-message': 'Are you sure you want to uninstall "{modName}"?',
-        'update-available-title': 'Update Available!',
-        'update-available-message': 'A new version ({latestVersion}) of disobey.top Mod Manager is available! Would you like to download it from the website?',
-        'ok-button': 'OK',
-        'close-button': 'Close',
-        'select-language-title': 'Select Language',
-        'conversor-title': 'Conversor',
-        'mod-name-label': 'Mod Name:',
-        'all-files-label': 'Files (.pak, .sig, .ucas, .utoc):',
-        'convert-button': 'Convert to .mmpackage',
-        'conversion-success': 'Successfully converted files to "{modName}.mmpackage".',
-        'conversion-error': 'Failed to convert files to .mmpackage: {error}',
-        'invalid-files-selected': 'Please select one .pak, one .sig, one .ucas, and one .utoc file.',
-        'mod-name-required': 'Please enter a name for the mod.',
-        'look-for-updates-button': 'Look for Updates',
-        'theme-label': 'Theme:',
-        'mod-uninstalled-success': 'Mod "{modName}" has been successfully uninstalled.',
-        'discord-rpc-label': 'Discord Rich Presence',
-        'developed-by': 'developed by desgubernamentalizar'
+    english: {
+        'home-dashboard-title': 'dashboard',
+        'home-greeting': 'welcome back!',
+        'home-install-mods-title': 'install mods',
+        'home-install-mods-desc': 'browse and install new mods.',
+        'home-conversor-title': 'conversor',
+        'home-conversor-desc': 'convert your files to .mmpackage.',
+        'home-settings-title': 'settings',
+        'home-settings-desc': 'configure paths and preferences.',
+        'home-update-status-title': 'update status',
+        'home-platform-title': 'platform',
+        'update-available': 'update available!',
+        'up-to-date': 'up to date',
+        'mods-title': 'mods',
+        'install-mods-button': 'install mods',
+        'no-mods-installed': 'no mods installed yet.',
+        'settings-title': 'settings',
+        'mod-folder-path-label': 'mod folder path:',
+        'pak-folder-path-label': 'pak folder path:',
+        'browse-button': 'browse',
+        'language-label': 'language:',
+        'platform-label': 'platform:',
+        'uninstall-all-mods-button': 'uninstall all mods',
+        'console-title': 'console output',
+        'confirm-action-title': 'confirm action',
+        'confirm-uninstall-all-mods-message': 'are you sure you want to uninstall all non-base mods from your pak folder? this action cannot be undone.',
+        'yes-button': 'yes',
+        'no-button': 'no',
+        'success-title': 'success',
+        'error-title': 'error',
+        'pak-folder-not-set': 'pak folder path is not set. cannot install/uninstall mods.',
+        'mod-folder-not-set': 'mod folder path is not set. cannot list available mods.',
+        'select-mods-title': 'select mods to install',
+        'no-available-mods': 'no .mmpackage mods found in the selected mod folder.',
+        'install-button': 'install',
+        'installed-button': 'installed',
+        'uninstall-button': 'uninstall',
+        'installing-button': 'installing...',
+        'confirm-uninstall-mod-message': 'are you sure you want to uninstall "{modName}"?',
+        'update-available-title': 'update available!',
+        'update-available-message': 'a new version ({latestVersion}) of disobey.top mod manager is available! would you like to download it from the website?',
+        'ok-button': 'ok',
+        'close-button': 'close',
+        'select-language-title': 'select language',
+        'conversor-title': 'conversor',
+        'mod-name-label': 'mod name:',
+        'all-files-label': 'files (.pak, .sig, .ucas, .utoc):',
+        'convert-button': 'convert to .mmpackage',
+        'conversion-success': 'successfully converted files to "{modName}.mmpackage".',
+        'conversion-error': 'failed to convert files to .mmpackage: {error}',
+        'invalid-files-selected': 'please select one .pak, one .sig, one .ucas, and one .utoc file.',
+        'mod-name-required': 'please enter a name for the mod.',
+        'look-for-updates-button': 'look for updates',
+        'mod-uninstalled-success': 'mod "{modName}" has been successfully uninstalled.',
+        'discord-rpc-label': 'discord rich presence',
+        'developed-by': 'developed by desgubernamentalizar',
+        'latest-version-message': 'you are in the latest version!'
     },
-    Russian: {
-        'home-dashboard-title': 'Панель управления',
-        'home-greeting': 'С возвращением!',
-        'home-install-mods-title': 'Установить моды',
-        'home-install-mods-desc': 'Просмотр и установка новых модов.',
-        'home-conversor-title': 'Конвертер',
-        'home-conversor-desc': 'Конвертируйте ваши файлы в .mmpackage.',
-        'home-settings-title': 'Настройки',
-        'home-settings-desc': 'Настройте пути и предпочтения.',
-        'home-update-status-title': 'Статус обновления',
-        'home-platform-title': 'Платформа',
-        'update-available': 'Доступно обновление!',
-        'up-to-date': 'Актуальная версия',
-        'mods-title': 'Моды',
-        'install-mods-button': 'Установить моды',
-        'no-mods-installed': 'Моды еще не установлены.',
-        'settings-title': 'Настройки',
-        'mod-folder-path-label': 'Путь к папке с модами:',
-        'pak-folder-path-label': 'Путь к папке PAK:',
-        'browse-button': 'Обзор',
-        'language-label': 'Язык:',
-        'platform-label': 'Платформа:',
-        'uninstall-all-mods-button': 'Удалить все моды',
-        'console-title': 'Вывод консоли',
-        'confirm-action-title': 'Подтвердить действие',
-        'confirm-uninstall-all-mods-message': 'Вы уверены, что хотите удалить ВСЕ не-базовые моды из вашей папки PAK? Это действие необратимо.',
-        'yes-button': 'Да',
-        'no-button': 'Нет',
-        'success-title': 'Успех',
-        'error-title': 'Ошибка',
-        'pak-folder-not-set': 'Путь к папке PAK не установлен. Невозможно установить/удалить моды.',
-        'mod-folder-not-set': 'Путь к папке с модами не установлен. Невозможно отобразить доступные моды.',
-        'select-mods-title': 'Выберите моды для установки',
-        'no-available-mods': 'В выбранной папке с модами не найдено файлов .mmpackage.',
-        'install-button': 'Установить',
-        'installed-button': 'Установлено',
-        'uninstall-button': 'Удалить',
-        'installing-button': 'Установка...',
-        'confirm-uninstall-mod-message': 'Вы уверены, что хотите удалить "{modName}"?',
-        'update-available-title': 'Доступно обновление!',
-        'update-available-message': 'Доступна новая версия ({latestVersion}) disobey.top Mod Manager! Хотите загрузить ее с веб-сайта?',
-        'ok-button': 'ОК',
-        'close-button': 'Закрыть',
-        'select-language-title': 'Выберите язык',
-        'conversor-title': 'Конвертер',
-        'mod-name-label': 'Название мода:',
-        'all-files-label': 'Файлы (.pak, .sig, .ucas, .utoc):',
-        'convert-button': 'Конвертировать в .mmpackage',
-        'conversion-success': 'Файлы успешно конвертированы в "{modName}.mmpackage".',
-        'conversion-error': 'Не удалось конвертировать файлы в .mmpackage: {error}',
-        'invalid-files-selected': 'Пожалуйста, выберите один файл .pak, один .sig, один .ucas и один .utoc.',
-        'mod-name-required': 'Пожалуйста, введите название для мода.',
-        'look-for-updates-button': 'Проверить обновления',
-        'theme-label': 'Тема:',
-        'mod-uninstalled-success': 'Мод "{modName}" был успешно удален.',
-        'discord-rpc-label': 'Discord Rich Presence',
-        'developed-by': 'разработано desgubernamentalizar'
+    russian: {
+        'home-dashboard-title': 'панель управления',
+        'home-greeting': 'с возвращением!',
+        'home-install-mods-title': 'установить моды',
+        'home-install-mods-desc': 'просмотр и установка новых модов.',
+        'home-conversor-title': 'конвертер',
+        'home-conversor-desc': 'конвертируйте ваши файлы в .mmpackage.',
+        'home-settings-title': 'настройки',
+        'home-settings-desc': 'настройте пути и предпочтения.',
+        'home-update-status-title': 'статус обновления',
+        'home-platform-title': 'платформа',
+        'update-available': 'доступно обновление!',
+        'up-to-date': 'актуальная версия',
+        'mods-title': 'моды',
+        'install-mods-button': 'установить моды',
+        'no-mods-installed': 'моды еще не установлены.',
+        'settings-title': 'настройки',
+        'mod-folder-path-label': 'путь к папке с модами:',
+        'pak-folder-path-label': 'путь к папке pak:',
+        'browse-button': 'обзор',
+        'language-label': 'язык:',
+        'platform-label': 'платформа:',
+        'uninstall-all-mods-button': 'удалить все моды',
+        'console-title': 'вывод консоли',
+        'confirm-action-title': 'подтвердить действие',
+        'confirm-uninstall-all-mods-message': 'вы уверены, что хотите удалить все не-базовые моды из вашей папки pak? это действие необратимо.',
+        'yes-button': 'да',
+        'no-button': 'нет',
+        'success-title': 'успех',
+        'error-title': 'ошибка',
+        'pak-folder-not-set': 'путь к папке pak не установлен. невозможно установить/удалить моды.',
+        'mod-folder-not-set': 'путь к папке с модами не установлен. невозможно отобразить доступные моды.',
+        'select-mods-title': 'выберите моды для установки',
+        'no-available-mods': 'в выбранной папке с модами не найдено файлов .mmpackage.',
+        'install-button': 'установить',
+        'installed-button': 'установлено',
+        'uninstall-button': 'удалить',
+        'installing-button': 'установка...',
+        'confirm-uninstall-mod-message': 'вы уверены, что хотите удалить "{modName}"?',
+        'update-available-title': 'доступно обновление!',
+        'update-available-message': 'доступна новая версия ({latestVersion}) disobey.top mod manager! хотите загрузить ее с веб-сайта?',
+        'ok-button': 'ок',
+        'close-button': 'закрыть',
+        'select-language-title': 'выберите язык',
+        'conversor-title': 'конвертер',
+        'mod-name-label': 'название мода:',
+        'all-files-label': 'файлы (.pak, .sig, .ucas, .utoc):',
+        'convert-button': 'конвертировать в .mmpackage',
+        'conversion-success': 'файлы успешно конвертированы в "{modName}.mmpackage".',
+        'conversion-error': 'не удалось конвертировать файлы в .mmpackage: {error}',
+        'invalid-files-selected': 'пожалуйста, выберите один файл .pak, один .sig, один .ucas и один .utoc.',
+        'mod-name-required': 'пожалуйста, введите название для мода.',
+        'look-for-updates-button': 'проверить обновления',
+        'mod-uninstalled-success': 'мод "{modName}" был успешно удален.',
+        'discord-rpc-label': 'discord rich presence',
+        'developed-by': 'разработано desgubernamentalizar',
+        'latest-version-message': 'у вас последняя версия!'
     },
-    German: {
-        'home-dashboard-title': 'Dashboard',
-        'home-greeting': 'Willkommen zurück!',
-        'home-install-mods-title': 'Mods installieren',
-        'home-install-mods-desc': 'Durchsuchen und installieren Sie neue Mods.',
-        'home-conversor-title': 'Konverter',
-        'home-conversor-desc': 'Konvertieren Sie Ihre Dateien in .mmpackage.',
-        'home-settings-title': 'Einstellungen',
-        'home-settings-desc': 'Konfigurieren Sie Pfade und Einstellungen.',
-        'home-update-status-title': 'Update-Status',
-        'home-platform-title': 'Plattform',
-        'update-available': 'Update verfügbar!',
-        'up-to-date': 'Aktuell',
-        'mods-title': 'Mods',
-        'install-mods-button': 'Mods installieren',
-        'no-mods-installed': 'Noch keine Mods installiert.',
-        'settings-title': 'Einstellungen',
-        'mod-folder-path-label': 'Mod-Ordnerpfad:',
-        'pak-folder-path-label': 'PAK-Ordnerpfad:',
-        'browse-button': 'Durchsuchen',
-        'language-label': 'Sprache:',
-        'platform-label': 'Plattform:',
-        'uninstall-all-mods-button': 'Alle Mods deinstallieren',
-        'console-title': 'Konsolenausgabe',
-        'confirm-action-title': 'Aktion bestätigen',
-        'confirm-uninstall-all-mods-message': 'Möchten Sie wirklich ALLE nicht-Basismods aus Ihrem PAK-Ordner deinstallieren? Diese Aktion kann nicht rückgängig gemacht werden.',
-        'yes-button': 'Ja',
-        'no-button': 'Nein',
-        'success-title': 'Erfolg',
-        'error-title': 'Fehler',
-        'pak-folder-not-set': 'PAK-Ordnerpfad ist nicht festgelegt. Mods können nicht installiert/deinstalliert werden.',
-        'mod-folder-not-set': 'Mod-Ordnerpfad ist nicht festgelegt. Verfügbare Mods können nicht aufgelistet werden.',
-        'select-mods-title': 'Mods zur Installation auswählen',
-        'no-available-mods': 'Keine .mmpackage-Mods im ausgewählten Mod-Ordner gefunden.',
-        'install-button': 'Installieren',
-        'installed-button': 'Installiert',
-        'uninstall-button': 'Deinstallieren',
-        'installing-button': 'Installiere...',
-        'confirm-uninstall-mod-message': 'Möchten Sie "{modName}" wirklich deinstallieren?',
-        'update-available-title': 'Update verfügbar!',
-        'update-available-message': 'Eine neue Version ({latestVersion}) des disobey.top Mod Managers ist verfügbar! Möchten Sie sie von der Website herunterladen?',
-        'ok-button': 'OK',
-        'close-button': 'Schließen',
-        'select-language-title': 'Sprache auswählen',
-        'conversor-title': 'Konverter',
-        'mod-name-label': 'Mod-Name:',
-        'all-files-label': 'Dateien (.pak, .sig, .ucas, .utoc):',
-        'convert-button': 'Konvertieren in .mmpackage',
-        'conversion-success': 'Dateien erfolgreich in "{modName}.mmpackage" konvertiert.',
-        'conversion-error': 'Fehler beim Konvertieren der Dateien in .mmpackage: {error}',
-        'invalid-files-selected': 'Bitte wählen Sie eine .pak-, eine .sig-, eine .ucas- und eine .utoc-Datei aus.',
-        'mod-name-required': 'Bitte geben Sie einen Namen für den Mod ein.',
-        'look-for-updates-button': 'Nach Updates suchen',
-        'theme-label': 'Thema:',
-        'mod-uninstalled-success': 'Mod "{modName}" wurde erfolgreich deinstalliert.',
-        'discord-rpc-label': 'Discord Rich Presence',
-        'developed-by': 'entwickelt von desgubernamentalizar'
+    german: {
+        'home-dashboard-title': 'dashboard',
+        'home-greeting': 'willkommen zurück!',
+        'home-install-mods-title': 'mods installieren',
+        'home-install-mods-desc': 'durchsuchen und installieren sie neue mods.',
+        'home-conversor-title': 'konverter',
+        'home-conversor-desc': 'konvertieren sie ihre dateien in .mmpackage.',
+        'home-settings-title': 'einstellungen',
+        'home-settings-desc': 'konfigurieren sie pfade und einstellungen.',
+        'home-update-status-title': 'update-status',
+        'home-platform-title': 'plattform',
+        'update-available': 'update verfügbar!',
+        'up-to-date': 'aktuell',
+        'mods-title': 'mods',
+        'install-mods-button': 'mods installieren',
+        'no-mods-installed': 'noch keine mods installiert.',
+        'settings-title': 'einstellungen',
+        'mod-folder-path-label': 'mod-ordnerpfad:',
+        'pak-folder-path-label': 'pak-ordnerpfad:',
+        'browse-button': 'durchsuchen',
+        'language-label': 'sprache:',
+        'platform-label': 'plattform:',
+        'uninstall-all-mods-button': 'alle mods deinstallieren',
+        'console-title': 'konsolenausgabe',
+        'confirm-action-title': 'aktion bestätigen',
+        'confirm-uninstall-all-mods-message': 'möchten sie wirklich alle nicht-basismods aus ihrem pak-ordner deinstallieren? diese aktion kann nicht rückgängig gemacht werden.',
+        'yes-button': 'ja',
+        'no-button': 'nein',
+        'success-title': 'erfolg',
+        'error-title': 'fehler',
+        'pak-folder-not-set': 'pak-ordnerpfad ist nicht festgelegt. mods können nicht installiert/deinstalliert werden.',
+        'mod-folder-not-set': 'mod-ordnerpfad ist nicht festgelegt. verfügbare mods können nicht aufgelistet werden.',
+        'select-mods-title': 'mods zur installation auswählen',
+        'no-available-mods': 'keine .mmpackage-mods im ausgewählten mod-ordner gefunden.',
+        'install-button': 'installieren',
+        'installed-button': 'installiert',
+        'uninstall-button': 'deinstallieren',
+        'installing-button': 'installiere...',
+        'confirm-uninstall-mod-message': 'möchten sie "{modName}" wirklich deinstallieren?',
+        'update-available-title': 'update verfügbar!',
+        'update-available-message': 'eine neue version ({latestVersion}) des disobey.top mod managers ist verfügbar! möchten sie sie von der website herunterladen?',
+        'ok-button': 'ok',
+        'close-button': 'schließen',
+        'select-language-title': 'sprache auswählen',
+        'conversor-title': 'konverter',
+        'mod-name-label': 'mod-name:',
+        'all-files-label': 'dateien (.pak, .sig, .ucas, .utoc):',
+        'convert-button': 'konvertieren in .mmpackage',
+        'conversion-success': 'dateien erfolgreich in "{modName}.mmpackage" konvertiert.',
+        'conversion-error': 'fehler beim konvertieren der dateien in .mmpackage: {error}',
+        'invalid-files-selected': 'bitte wählen sie eine .pak-, eine .sig-, eine .ucas- und eine .utoc-datei aus.',
+        'mod-name-required': 'bitte geben sie einen namen für den mod ein.',
+        'look-for-updates-button': 'nach updates suchen',
+        'mod-uninstalled-success': 'mod "{modName}" wurde erfolgreich deinstalliert.',
+        'discord-rpc-label': 'discord rich presence',
+        'developed-by': 'entwickelt von desgubernamentalizar',
+        'latest-version-message': 'sie haben die neueste version!'
+    },
+    spanish: {
+        'home-dashboard-title': 'panel',
+        'home-greeting': '¡bienvenido de nuevo!',
+        'home-install-mods-title': 'instalar mods',
+        'home-install-mods-desc': 'explora e instala nuevos mods.',
+        'home-conversor-title': 'conversor',
+        'home-conversor-desc': 'convierte tus archivos a .mmpackage.',
+        'home-settings-title': 'ajustes',
+        'home-settings-desc': 'configura rutas y preferencias.',
+        'home-update-status-title': 'estado de actualización',
+        'home-platform-title': 'plataforma',
+        'update-available': '¡actualización disponible!',
+        'up-to-date': 'actualizado',
+        'mods-title': 'mods',
+        'install-mods-button': 'instalar mods',
+        'no-mods-installed': 'aún no hay mods instalados.',
+        'settings-title': 'ajustes',
+        'mod-folder-path-label': 'ruta de la carpeta de mods:',
+        'pak-folder-path-label': 'ruta de la carpeta pak:',
+        'browse-button': 'examinar',
+        'language-label': 'idioma:',
+        'platform-label': 'plataforma:',
+        'uninstall-all-mods-button': 'desinstalar todos los mods',
+        'console-title': 'salida de la consola',
+        'confirm-action-title': 'confirmar acción',
+        'confirm-uninstall-all-mods-message': '¿estás seguro de que quieres desinstalar todos los mods no base de tu carpeta pak? esta acción no se puede deshacer.',
+        'yes-button': 'sí',
+        'no-button': 'no',
+        'success-title': 'éxito',
+        'error-title': 'error',
+        'pak-folder-not-set': 'la ruta de la carpeta pak no está configurada. no se pueden instalar/desinstalar mods.',
+        'mod-folder-not-set': 'la ruta de la carpeta de mods no está configurada. no se pueden listar los mods disponibles.',
+        'select-mods-title': 'seleccionar mods para instalar',
+        'no-available-mods': 'no se encontraron mods .mmpackage en la carpeta de mods seleccionada.',
+        'install-button': 'instalar',
+        'installed-button': 'instalado',
+        'uninstall-button': 'desinstalar',
+        'installing-button': 'instalando...',
+        'confirm-uninstall-mod-message': '¿estás seguro de que quieres desinstalar "{modName}"?',
+        'update-available-title': '¡actualización disponible!',
+        'update-available-message': '¡una nueva versión ({latestVersion}) de disobey.top mod manager está disponible! ¿quieres descargarla desde el sitio web?',
+        'ok-button': 'aceptar',
+        'close-button': 'cerrar',
+        'select-language-title': 'seleccionar idioma',
+        'conversor-title': 'conversor',
+        'mod-name-label': 'nombre del mod:',
+        'all-files-label': 'archivos (.pak, .sig, .ucas, .utoc):',
+        'convert-button': 'convertir a .mmpackage',
+        'conversion-success': 'archivos convertidos exitosamente a "{modName}.mmpackage".',
+        'conversion-error': 'fallo al convertir archivos a .mmpackage: {error}',
+        'invalid-files-selected': 'por favor, selecciona un archivo .pak, uno .sig, uno .ucas y uno .utoc.',
+        'mod-name-required': 'por favor, introduce un nombre para el mod.',
+        'look-for-updates-button': 'buscar actualizaciones',
+        'mod-uninstalled-success': 'el mod "{modName}" ha sido desinstalado exitosamente.',
+        'discord-rpc-label': 'discord rich presence',
+        'developed-by': 'desarrollado por desgubernamentalizar',
+        'latest-version-message': '¡estás en la última versión!'
+    },
+    chinese: {
+        'home-dashboard-title': '仪表板',
+        'home-greeting': '欢迎回来！',
+        'home-install-mods-title': '安装模组',
+        'home-install-mods-desc': '浏览并安装新的模组。',
+        'home-conversor-title': '转换器',
+        'home-conversor-desc': '将您的文件转换为 .mmpackage。',
+        'home-settings-title': '设置',
+        'home-settings-desc': '配置路径和首选项。',
+        'home-update-status-title': '更新状态',
+        'home-platform-title': '平台',
+        'update-available': '有可用更新！',
+        'up-to-date': '最新版本',
+        'mods-title': '模组',
+        'install-mods-button': '安装模组',
+        'no-mods-installed': '尚未安装模组。',
+        'settings-title': '设置',
+        'mod-folder-path-label': '模组文件夹路径：',
+        'pak-folder-path-label': 'pak 文件夹路径：',
+        'browse-button': '浏览',
+        'language-label': '语言：',
+        'platform-label': '平台：',
+        'uninstall-all-mods-button': '卸载所有模组',
+        'console-title': '控制台输出',
+        'confirm-action-title': '确认操作',
+        'confirm-uninstall-all-mods-message': '您确定要从您的 pak 文件夹中卸载所有非基础模组吗？此操作无法撤销。',
+        'yes-button': '是',
+        'no-button': '否',
+        'success-title': '成功',
+        'error-title': '错误',
+        'pak-folder-not-set': '未设置 pak 文件夹路径。无法安装/卸载模组。',
+        'mod-folder-not-set': '未设置模组文件夹路径。无法列出可用模组。',
+        'select-mods-title': '选择要安装的模组',
+        'no-available-mods': '在所选模组文件夹中找不到 .mmpackage 模组。',
+        'install-button': '安装',
+        'installed-button': '已安装',
+        'uninstall-button': '卸载',
+        'installing-button': '正在安装...',
+        'confirm-uninstall-mod-message': '您确定要卸载“{modName}”吗？',
+        'update-available-title': '有可用更新！',
+        'update-available-message': 'disobey.top 模组管理器有新版本 ({latestVersion}) 可用！您想从网站下载吗？',
+        'ok-button': '确定',
+        'close-button': '关闭',
+        'select-language-title': '选择语言',
+        'conversor-title': '转换器',
+        'mod-name-label': '模组名称：',
+        'all-files-label': '文件 (.pak, .sig, .ucas, .utoc):',
+        'convert-button': '转换为 .mmpackage',
+        'conversion-success': '文件已成功转换为“{modName}.mmpackage”。',
+        'conversion-error': '无法将文件转换为 .mmpackage: {error}',
+        'invalid-files-selected': '请选择一个 .pak, 一个 .sig, 一个 .ucas, 和一个 .utoc 文件。',
+        'mod-name-required': '请输入模组的名称。',
+        'look-for-updates-button': '检查更新',
+        'mod-uninstalled-success': '模组“{modName}”已成功卸载。',
+        'discord-rpc-label': 'discord rich presence',
+        'developed-by': '由 desgubernamentalizar 开发',
+        'latest-version-message': '您使用的是最新版本！'
     }
 };
 
+
 /**
- * Applies translations to the UI elements.
- * @param {string} langKey - The key for the selected language (e.g., 'English').
+ * applies translations to the ui elements.
+ * @param {string} langkey - the key for the selected language (e.g., 'english').
  */
 function applyTranslations(langKey) {
-    const currentLang = translations[langKey] || translations.English;
+    const lang = langKey ? langKey.toLowerCase() : 'english';
+    const currentLang = translations[lang] || translations.english;
     document.querySelectorAll('[data-translate]').forEach(element => {
         const key = element.getAttribute('data-translate');
         if (currentLang[key]) {
@@ -204,11 +321,11 @@ function applyTranslations(langKey) {
         }
     });
 
-    // Handle elements with combined icons and text
+    // handle elements with combined icons and text
     const setHtml = (selector, key) => {
         const element = document.querySelector(selector);
         if (element) {
-            const translationText = currentLang[key] || `Missing: ${key}`;
+            const translationText = currentLang[key] || `missing: ${key}`;
             const iconMatch = element.innerHTML.match(/<i class="[^"]+"><\/i>/);
             element.innerHTML = iconMatch ? `${iconMatch[0]} ${translationText}` : translationText;
         }
@@ -220,19 +337,19 @@ function applyTranslations(langKey) {
     setHtml('#uninstall-all-mods-button', 'uninstall-all-mods-button');
     setHtml('#check-for-updates-button', 'look-for-updates-button');
     
-    // Update dynamic button texts
+    // update dynamic button texts
     document.querySelectorAll('.mod-toggle-button').forEach(button => {
-        const currentText = button.textContent;
-        if (currentText.includes('Install')) button.textContent = currentLang['install-button'];
-        else if (currentText.includes('Installed')) button.textContent = currentLang['installed-button'];
-        else if (currentText.includes('Uninstall')) button.textContent = currentLang['uninstall-button'];
+        const currentText = button.textContent.toLowerCase();
+        if (currentText.includes('install')) button.textContent = currentLang['install-button'];
+        else if (currentText.includes('installed')) button.textContent = currentLang['installed-button'];
+        else if (currentText.includes('uninstall')) button.textContent = currentLang['uninstall-button'];
     });
 
-    log(`Applied translations for: ${langKey}`, 'system');
+    log(`applied translations for: ${langKey}`, 'system');
 }
 
 
-// --- Utility Functions ---
+// --- utility functions ---
 
 function log(message, type = 'info') {
     const entry = document.createElement('div');
@@ -251,12 +368,23 @@ function showConfirmationModal(title, message) {
         document.getElementById('confirmation-modal-message').textContent = message;
         const confirmBtn = document.getElementById('confirmation-modal-confirm');
         const cancelBtn = document.getElementById('confirmation-modal-cancel');
-        confirmBtn.onclick = null;
-        cancelBtn.onclick = null;
-        const onConfirm = () => { hideModal('confirmation-modal'); resolve(true); };
-        const onCancel = () => { hideModal('confirmation-modal'); resolve(false); };
-        confirmBtn.onclick = onConfirm;
-        cancelBtn.onclick = onCancel;
+        
+        const onConfirm = () => { 
+            hideModal('confirmation-modal'); 
+            resolve(true); 
+            confirmBtn.removeEventListener('click', onConfirm);
+            cancelBtn.removeEventListener('click', onCancel);
+        };
+        const onCancel = () => { 
+            hideModal('confirmation-modal'); 
+            resolve(false); 
+            confirmBtn.removeEventListener('click', onConfirm);
+            cancelBtn.removeEventListener('click', onCancel);
+        };
+
+        confirmBtn.addEventListener('click', onConfirm, { once: true });
+        cancelBtn.addEventListener('click', onCancel, { once: true });
+
         modal.classList.remove('hidden');
     });
 }
@@ -272,7 +400,7 @@ function hideModal(modalId) {
     document.getElementById(modalId)?.classList.add('hidden');
 }
 
-// --- Tab Management ---
+// --- tab management ---
 
 function activateTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => {
@@ -288,7 +416,7 @@ function activateTab(tabId) {
     });
     document.querySelector(`.tab-button[data-tab="${tabId.replace('-tab', '')}"]`)?.classList.add('active');
 
-    log(`Switched to tab: ${tabId}`, 'user');
+    log(`switched to tab: ${tabId}`, 'user');
 
     if (tabId === 'mods-tab' || tabId === 'home-tab') {
         renderInstalledMods();
@@ -296,188 +424,71 @@ function activateTab(tabId) {
     applyTranslations(currentSettings.language);
 }
 
-document.querySelectorAll('.tab-button').forEach(button => {
-    button.addEventListener('click', () => {
-        const tab = button.dataset.tab;
-        activateTab(`${tab}-tab`);
-    });
-});
-
-// --- Settings Management ---
+// --- settings management ---
 
 async function loadSettings() {
-    log('Loading settings...', 'system');
+    log('loading settings...', 'system');
     currentSettings = await window.electronAPI.loadSettings();
     document.getElementById('mod-folder-path').value = currentSettings.modFolderPath || '';
     document.getElementById('pak-folder-path').value = currentSettings.pakFolderPath || '';
-    document.getElementById('platform-selector').value = currentSettings.platform || 'Steam';
+    document.getElementById('platform-selector').value = currentSettings.platform || 'steam';
     document.getElementById('discord-rpc-toggle').checked = currentSettings.discordRpcEnabled;
-    updateLanguageDisplay(currentSettings.language || 'English');
-    await populateThemeSelector();
-    await loadAndApplyTheme(currentSettings.theme || 'Default');
+    updateLanguageDisplay(currentSettings.language || 'english');
     applyTranslations(currentSettings.language);
-    log('Settings loaded and UI updated.', 'system');
+    log('settings loaded and ui updated.', 'system');
 }
 
 async function saveSettings() {
-    log('Saving settings...', 'system');
+    log('saving settings...', 'system');
     const settingsToSave = {
         modFolderPath: document.getElementById('mod-folder-path').value,
         pakFolderPath: document.getElementById('pak-folder-path').value,
         language: document.getElementById('current-language-text').textContent,
         platform: document.getElementById('platform-selector').value,
-        theme: document.getElementById('theme-selector').value,
         discordRpcEnabled: document.getElementById('discord-rpc-toggle').checked
     };
     const result = await window.electronAPI.saveSettings(settingsToSave);
     if (result.success) {
         currentSettings = settingsToSave;
-        log('Settings saved successfully.', 'success');
+        log('settings saved successfully.', 'success');
         applyTranslations(currentSettings.language);
+        // also update platform display on home tab
+        document.getElementById('platform-stat-text').textContent = `platform: ${currentSettings.platform}`;
     } else {
-        log(`Failed to save settings: ${result.error}`, 'error');
-        showMessageModal(translations[currentSettings.language]['error-title'], `Failed to save settings: ${result.error}`);
+        const lang = currentSettings.language.toLowerCase();
+        log(`failed to save settings: ${result.error}`, 'error');
+        showMessageModal(translations[lang]['error-title'], `failed to save settings: ${result.error}`);
     }
 }
 
-document.getElementById('select-mod-folder')?.addEventListener('click', async () => {
-    const folderPath = await window.electronAPI.openFolderDialog();
-    if (folderPath) {
-        document.getElementById('mod-folder-path').value = folderPath;
-        await saveSettings();
-    }
-});
-
-document.getElementById('select-pak-folder')?.addEventListener('click', async () => {
-    const folderPath = await window.electronAPI.openFolderDialog();
-    if (folderPath) {
-        document.getElementById('pak-folder-path').value = folderPath;
-        await saveSettings();
-    }
-});
-
-document.getElementById('platform-selector')?.addEventListener('change', async () => {
-    await saveSettings();
-});
-
-// --- Theme Management ---
-async function populateThemeSelector() {
-    const themeSelector = document.getElementById('theme-selector');
-    const customThemes = await window.electronAPI.getThemes();
-    themeSelector.innerHTML = ''; // Clear previous options
-    
-    const allThemes = ['Default', ...customThemes];
-    allThemes.forEach(theme => {
-        const option = document.createElement('option');
-        option.value = theme;
-        option.textContent = theme;
-        themeSelector.appendChild(option);
-    });
-    themeSelector.value = currentSettings.theme || 'Default';
-}
-
-async function loadAndApplyTheme(themeName) {
-    const style = document.getElementById('custom-theme-style') || document.createElement('style');
-    style.id = 'custom-theme-style';
-    document.head.appendChild(style);
-
-    let theme = {};
-    if (themeName === 'Default') {
-        style.textContent = '';
-        log('Switched to Default theme.', 'system');
-        return;
-    } 
-    
-    const themeScript = await window.electronAPI.loadTheme(themeName);
-    if (themeScript) {
-        try {
-            const themeFunction = new Function('applyTheme', themeScript);
-            themeFunction((styles) => { theme = styles; });
-        } catch (error) {
-            log(`Error applying theme "${themeName}": ${error.message}`, 'error');
-            return;
-        }
-    }
-
-    let css = ':root {';
-    for (const [key, value] of Object.entries(theme)) {
-        css += `--${key}: ${value};`;
-    }
-    css += '}';
-    style.textContent = css;
-    log(`Applied theme: ${themeName}`, 'success');
-}
-
-document.getElementById('theme-selector')?.addEventListener('change', async (event) => {
-    const themeName = event.target.value;
-    await loadAndApplyTheme(themeName);
-    await saveSettings();
-});
-
-
-// Language selection
-const languages = { English: 'us', Russian: 'ru', German: 'de' };
+// --- language management ---
+const languages = { english: 'us', russian: 'ru', german: 'de', spanish: 'es', chinese: 'cn' };
 function updateLanguageDisplay(lang) {
-    document.getElementById('current-language-flag').src = `https://flagcdn.com/w20/${languages[lang]}.png`;
-    document.getElementById('current-language-flag').alt = `${lang} Flag`;
+    const langKey = lang.toLowerCase();
+    document.getElementById('current-language-flag').src = `https://flagcdn.com/w20/${languages[langKey]}.png`;
+    document.getElementById('current-language-flag').alt = `${lang} flag`;
     document.getElementById('current-language-text').textContent = lang;
 }
 
-document.getElementById('language-selector')?.addEventListener('click', () => {
-    const modal = document.getElementById('language-selection-modal');
-    modal?.classList.remove('hidden');
-    document.querySelectorAll('.language-option').forEach(option => {
-        option.classList.toggle('selected', option.dataset.lang === currentSettings.language);
-        const newOption = option.cloneNode(true);
-        option.parentNode.replaceChild(newOption, option);
-    });
-    document.querySelectorAll('.language-option').forEach(option => {
-        option.addEventListener('click', async () => {
-            const selectedLang = option.dataset.lang;
-            updateLanguageDisplay(selectedLang);
-            currentSettings.language = selectedLang;
-            await saveSettings();
-            hideModal('language-selection-modal');
-        });
-    });
-});
-
-// Uninstall all mods
-document.getElementById('uninstall-all-mods-button')?.addEventListener('click', async () => {
-    const confirmed = await showConfirmationModal(
-        translations[currentSettings.language]['confirm-action-title'],
-        translations[currentSettings.language]['confirm-uninstall-all-mods-message']
-    );
-    if (confirmed) {
-        const result = await window.electronAPI.uninstallAllMods();
-        if (result.success) {
-            showMessageModal(translations[currentSettings.language]['success-title'], `Successfully uninstalled ${result.count} non-base mods.`);
-            renderInstalledMods();
-        } else {
-            showMessageModal(translations[currentSettings.language]['error-title'], `Failed to uninstall all mods: ${result.error}`);
-        }
-    }
-});
-
-// --- Mod Management ---
-
+// --- mod management ---
 async function renderInstalledMods() {
-    log('Refreshing installed mods list.', 'system');
+    log('refreshing installed mods list.', 'system');
     installedModsData = await window.electronAPI.getInstalledMods();
     const installedModsListDiv = document.getElementById('installed-mods-list');
     if (!installedModsListDiv) return;
     installedModsListDiv.innerHTML = '';
 
     const modNames = Object.keys(installedModsData);
+    const lang = currentSettings.language.toLowerCase();
 
-    // Update home page stats
-    document.getElementById('platform-stat').textContent = currentSettings.platform;
+    // update home page stats
+    document.getElementById('platform-stat-text').textContent = `platform: ${currentSettings.platform}`;
 
     if (modNames.length === 0) {
         const noModsMessage = document.createElement('p');
         noModsMessage.id = 'no-mods-installed-message';
         noModsMessage.classList.add('text-gray-400', 'text-center');
-        noModsMessage.textContent = translations[currentSettings.language]['no-mods-installed'];
+        noModsMessage.textContent = translations[lang]['no-mods-installed'];
         installedModsListDiv.appendChild(noModsMessage);
         return;
     }
@@ -488,56 +499,17 @@ async function renderInstalledMods() {
         modItem.classList.add('mod-item', isInstalled ? 'mod-item-installed' : 'mod-item-not-installed');
         modItem.innerHTML = `
             <span class="mod-item-name">${modName.replace('.mmpackage', '')}</span>
-            <button class="mod-toggle-button off" data-mod-name="${modName}">${translations[currentSettings.language]['uninstall-button']}</button>
+            <button class="mod-toggle-button off" data-mod-name="${modName}">${translations[lang]['uninstall-button']}</button>
         `;
         installedModsListDiv.appendChild(modItem);
-        modItem.querySelector('.mod-toggle-button')?.addEventListener('click', async (event) => {
-            const name = event.target.dataset.modName;
-            const confirmed = await showConfirmationModal(
-                translations[currentSettings.language]['confirm-action-title'],
-                translations[currentSettings.language]['confirm-uninstall-mod-message'].replace('{modName}', name.replace('.mmpackage', ''))
-            );
-            if (confirmed) {
-                event.target.textContent = 'Uninstalling...';
-                event.target.disabled = true;
-                const result = await window.electronAPI.uninstallMod(name);
-                if (result.success) {
-                    showMessageModal(translations[currentSettings.language]['success-title'], translations[currentSettings.language]['mod-uninstalled-success'].replace('{modName}', name.replace('.mmpackage', '')));
-                    renderInstalledMods();
-                } else {
-                    showMessageModal(translations[currentSettings.language]['error-title'], `Failed to uninstall: ${result.error}`);
-                    event.target.textContent = translations[currentSettings.language]['uninstall-button'];
-                    event.target.disabled = false;
-                }
-            }
-        });
     });
 }
 
-// --- Conversor Tab Logic ---
+// --- conversor tab logic ---
 const modNameInput = document.getElementById('mod-name-input');
 const allFilesPathInput = document.getElementById('all-files-path');
-const selectAllFilesButton = document.getElementById('select-all-files');
 const convertButton = document.getElementById('convert-button');
 let selectedConversionFiles = [];
-
-selectAllFilesButton?.addEventListener('click', async () => {
-    const filePaths = await window.electronAPI.openFileDialog([{ name: 'Game Files', extensions: ['pak', 'sig', 'ucas', 'utoc'] }]);
-    if (filePaths && filePaths.length > 0) {
-        const extensions = new Set(filePaths.map(p => p.split('.').pop().toLowerCase()));
-        if (filePaths.length === 4 && extensions.has('pak') && extensions.has('sig') && extensions.has('ucas') && extensions.has('utoc')) {
-            selectedConversionFiles = filePaths;
-            allFilesPathInput.value = filePaths.map(p => p.split(/[\\/]/).pop()).join(', ');
-        } else {
-            showMessageModal(translations[currentSettings.language]['error-title'], translations[currentSettings.language]['invalid-files-selected']);
-            selectedConversionFiles = [];
-            allFilesPathInput.value = '';
-        }
-        checkConvertButtonStatus();
-    }
-});
-
-modNameInput?.addEventListener('input', checkConvertButtonStatus);
 
 function checkConvertButtonStatus() {
     const isReady = modNameInput?.value.trim() && selectedConversionFiles.length === 4;
@@ -552,35 +524,18 @@ function resetConversorForm() {
     checkConvertButtonStatus();
 }
 
-convertButton?.addEventListener('click', async () => {
-    const modName = modNameInput?.value.trim();
-    if (!modName || selectedConversionFiles.length !== 4) return;
-    convertButton.textContent = 'Converting...';
-    convertButton.disabled = true;
-    const result = await window.electronAPI.convertToMmpackage(modName, selectedConversionFiles);
-    if (result.success) {
-        showMessageModal(translations[currentSettings.language]['success-title'], translations[currentSettings.language]['conversion-success'].replace('{modName}', modName));
-        resetConversorForm();
-    } else {
-        showMessageModal(translations[currentSettings.language]['error-title'], translations[currentSettings.language]['conversion-error'].replace('{error}', result.error));
-    }
-    convertButton.textContent = translations[currentSettings.language]['convert-button'];
-    checkConvertButtonStatus();
-});
-
-
-// --- Update Checker ---
+// --- update checker ---
 window.electronAPI.onUpdateAvailable((data) => {
-    log(`Update available! Latest: ${data.latestVersion}, Current: ${data.currentVersion}`, 'system');
+    log(`update available! latest: ${data.latestVersion}, current: ${data.currentVersion}`, 'system');
+    const lang = currentSettings.language.toLowerCase();
     if (appVersionSpan) {
         appVersionSpan.textContent = data.currentVersion;
-        appVersionSpan.style.color = '#f44336'; // Bright red for update available
     }
-    document.getElementById('update-status-text').textContent = translations[currentSettings.language]['update-available'];
+    document.getElementById('update-status-text').textContent = `update status: ${translations[lang]['update-available']}`;
     document.getElementById('update-status-text').style.color = '#f44336';
     showConfirmationModal(
-        translations[currentSettings.language]['update-available-title'],
-        translations[currentSettings.language]['update-available-message'].replace('{latestVersion}', data.latestVersion)
+        translations[lang]['update-available-title'],
+        translations[lang]['update-available-message'].replace('{latestVersion}', data.latestVersion)
     ).then(confirmed => {
         if (confirmed) {
             window.electronAPI.openUpdateUrl().then(() => {
@@ -591,101 +546,246 @@ window.electronAPI.onUpdateAvailable((data) => {
 });
 
 window.electronAPI.onNoUpdateAvailable((data) => {
-    log(`No update available. Current version: ${data.currentVersion}`, 'system');
+    log(`no update available. current version: ${data.currentVersion}`, 'system');
+    const lang = currentSettings.language.toLowerCase();
     if (appVersionSpan) {
         appVersionSpan.textContent = data.currentVersion;
-        appVersionSpan.style.color = '#b0b0b0';
     }
-    document.getElementById('update-status-text').textContent = translations[currentSettings.language]['up-to-date'];
-    document.getElementById('update-status-text').style.color = ''; // Reset color
-    if (data.error) log(`Update check error: ${data.error}`, 'warn');
-});
+    document.getElementById('update-status-text').textContent = `update status: ${translations[lang]['up-to-date']}`;
+    document.getElementById('update-status-text').style.color = ''; // reset color
+    if (data.error) log(`update check error: ${data.error}`, 'warn');
 
-document.getElementById('check-for-updates-button')?.addEventListener('click', () => {
-    window.electronAPI.triggerUpdateCheck();
+    if(data.isManual){
+        showMessageModal(translations[lang]['success-title'], translations[lang]['latest-version-message']);
+    }
 });
 
 window.electronAPI.getAppVersion().then(version => {
     if (appVersionSpan) appVersionSpan.textContent = version;
-    log(`Application version: ${version}`, 'system');
+    log(`application version: ${version}`, 'system');
 });
 
-// --- Initialization ---
+// --- initialization and event listeners ---
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log("Renderer script: DOMContentLoaded event fired.");
+    console.log("renderer script: domcontentloaded event fired.");
     
-    // Attach title bar listeners
-    document.getElementById('minimize-button')?.addEventListener('click', () => window.electronAPI.minimizeWindow());
-    document.getElementById('maximize-button')?.addEventListener('click', () => window.electronAPI.maximizeWindow());
-    document.getElementById('close-button')?.addEventListener('click', () => window.electronAPI.closeWindow());
-    
-    // Attach Install Mods button listener here to ensure it's always available
-    document.getElementById('install-mods-button')?.addEventListener('click', async () => {
-        if (!currentSettings.modFolderPath || !currentSettings.pakFolderPath) {
-            showMessageModal(translations[currentSettings.language]['error-title'], translations[currentSettings.language]['pak-folder-not-set']);
-            return;
-        }
-        const availableMods = await window.electronAPI.getAvailableMods();
-        const modSelectionList = document.getElementById('available-mods-list');
-        if (!modSelectionList) return;
-        modSelectionList.innerHTML = '';
-
-        const noModsMessage = document.getElementById('no-available-mods-message');
-        if (availableMods.length === 0) {
-            if (noModsMessage) noModsMessage.style.display = 'block';
-        } else {
-            if (noModsMessage) noModsMessage.style.display = 'none';
-            availableMods.forEach(mod => {
-                const isInstalled = !!installedModsData[mod.name];
-                const modItem = document.createElement('div');
-                modItem.classList.add('mod-item', isInstalled ? 'mod-item-installed' : 'mod-item-not-installed');
-                modItem.innerHTML = `
-                    <span class="mod-item-name">${mod.name.replace('.mmpackage', '')}</span>
-                    <button class="mod-toggle-button ${isInstalled ? 'off' : 'on'}" data-mod-name="${mod.name}" data-mod-path="${mod.path}" ${isInstalled ? 'disabled' : ''}>
-                        ${isInstalled ? translations[currentSettings.language]['installed-button'] : translations[currentSettings.language]['install-button']}
-                    </button>
-                `;
-                modSelectionList.appendChild(modItem);
-                if (!isInstalled) {
-                    modItem.querySelector('.mod-toggle-button')?.addEventListener('click', async (event) => {
-                        const name = event.target.dataset.modName;
-                        const path = event.target.dataset.modPath;
-                        event.target.textContent = translations[currentSettings.language]['installing-button'];
-                        event.target.disabled = true;
-                        const result = await window.electronAPI.installMod(name, path);
-                        if (result.success) {
-                            event.target.textContent = translations[currentSettings.language]['installed-button'];
-                            renderInstalledMods();
-                        } else {
-                            showMessageModal(translations[currentSettings.language]['error-title'], `Failed to install: ${result.error}`);
-                            event.target.textContent = translations[currentSettings.language]['install-button'];
-                            event.target.disabled = false;
-                        }
-                    });
-                }
-            });
-        }
-        document.getElementById('mod-selection-modal')?.classList.remove('hidden');
-    });
-
-    document.getElementById('discord-rpc-toggle')?.addEventListener('change', async (event) => {
-        window.electronAPI.setRpcStatus(event.target.checked);
-        await saveSettings();
-    });
-
     try {
         await loadSettings();
+        
+        // signal to main process that renderer is ready
+        window.electronAPI.rendererReady();
+
+        // attach title bar listeners
+        document.getElementById('minimize-button')?.addEventListener('click', () => window.electronAPI.minimizeWindow());
+        document.getElementById('maximize-button')?.addEventListener('click', () => window.electronAPI.maximizeWindow());
+        document.getElementById('close-button')?.addEventListener('click', () => window.electronAPI.closeWindow());
+        
+        // tab buttons
+        document.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const tab = button.dataset.tab;
+                activateTab(`${tab}-tab`);
+            });
+        });
+
+        // settings listeners
+        document.getElementById('select-mod-folder')?.addEventListener('click', async () => {
+            const folderPath = await window.electronAPI.openFolderDialog();
+            if (folderPath) {
+                document.getElementById('mod-folder-path').value = folderPath;
+                await saveSettings();
+            }
+        });
+        document.getElementById('select-pak-folder')?.addEventListener('click', async () => {
+            const folderPath = await window.electronAPI.openFolderDialog();
+            if (folderPath) {
+                document.getElementById('pak-folder-path').value = folderPath;
+                await saveSettings();
+            }
+        });
+        document.getElementById('platform-selector')?.addEventListener('change', saveSettings);
+        document.getElementById('discord-rpc-toggle')?.addEventListener('change', async (event) => {
+            window.electronAPI.setRpcStatus(event.target.checked);
+            currentSettings.discordRpcEnabled = event.target.checked;
+            await saveSettings();
+        });
+
+        // language modal
+        document.getElementById('language-selector')?.addEventListener('click', () => {
+            const modal = document.getElementById('language-selection-modal');
+            modal?.classList.remove('hidden');
+            document.querySelectorAll('.language-option').forEach(option => {
+                option.classList.toggle('selected', option.dataset.lang.toLowerCase() === currentSettings.language.toLowerCase());
+            });
+        });
+        document.getElementById('language-selection-modal').addEventListener('click', async (event) => {
+            const target = event.target.closest('.language-option');
+            if (target) {
+                const selectedLang = target.dataset.lang;
+                updateLanguageDisplay(selectedLang);
+                currentSettings.language = selectedLang;
+                await saveSettings();
+                hideModal('language-selection-modal');
+            }
+        });
+
+        // uninstall all mods button
+        document.getElementById('uninstall-all-mods-button')?.addEventListener('click', async () => {
+            const lang = currentSettings.language.toLowerCase();
+            const confirmed = await showConfirmationModal(
+                translations[lang]['confirm-action-title'],
+                translations[lang]['confirm-uninstall-all-mods-message']
+            );
+            if (confirmed) {
+                const result = await window.electronAPI.uninstallAllMods();
+                if (result.success) {
+                    showMessageModal(translations[lang]['success-title'], `successfully uninstalled ${result.count} non-base mods.`);
+                    await renderInstalledMods();
+                } else {
+                    showMessageModal(translations[lang]['error-title'], `failed to uninstall all mods: ${result.error}`);
+                }
+            }
+        });
+        
+        // check for updates button
+        document.getElementById('check-for-updates-button')?.addEventListener('click', () => {
+            window.electronAPI.triggerUpdateCheck();
+        });
+
+        // mods tab listeners (using event delegation)
+        document.getElementById('install-mods-button')?.addEventListener('click', async () => {
+            const lang = currentSettings.language.toLowerCase();
+            if (!currentSettings.modFolderPath || !currentSettings.pakFolderPath) {
+                showMessageModal(translations[lang]['error-title'], translations[lang]['pak-folder-not-set']);
+                return;
+            }
+            const availableMods = await window.electronAPI.getAvailableMods();
+            const modSelectionList = document.getElementById('available-mods-list');
+            if (!modSelectionList) return;
+            modSelectionList.innerHTML = '';
+
+            const noModsMessage = document.getElementById('no-available-mods-message');
+            if (availableMods.length === 0) {
+                if (noModsMessage) noModsMessage.style.display = 'block';
+            } else {
+                if (noModsMessage) noModsMessage.style.display = 'none';
+                availableMods.forEach(mod => {
+                    const isInstalled = !!installedModsData[mod.name];
+                    const modItem = document.createElement('div');
+                    modItem.classList.add('mod-item', isInstalled ? 'mod-item-installed' : 'mod-item-not-installed');
+                    modItem.innerHTML = `
+                        <span class="mod-item-name">${mod.name.replace('.mmpackage', '')}</span>
+                        <button class="mod-toggle-button ${isInstalled ? 'off' : 'on'}" data-mod-name="${mod.name}" data-mod-path="${mod.path}" ${isInstalled ? 'disabled' : ''}>
+                            ${isInstalled ? translations[lang]['installed-button'] : translations[lang]['install-button']}
+                        </button>
+                    `;
+                    modSelectionList.appendChild(modItem);
+                });
+            }
+            document.getElementById('mod-selection-modal')?.classList.remove('hidden');
+        });
+
+        document.getElementById('available-mods-list').addEventListener('click', async (event) => {
+            const button = event.target.closest('.mod-toggle-button.on');
+            if (button) {
+                const lang = currentSettings.language.toLowerCase();
+                const name = button.dataset.modName;
+                const path = button.dataset.modPath;
+                button.textContent = translations[lang]['installing-button'];
+                button.disabled = true;
+                const result = await window.electronAPI.installMod(name, path);
+                if (result.success) {
+                    button.textContent = translations[lang]['installed-button'];
+                    button.classList.remove('on');
+                    button.classList.add('off');
+                    await renderInstalledMods(); // refresh main list
+                } else {
+                    showMessageModal(translations[lang]['error-title'], `failed to install: ${result.error}`);
+                    button.textContent = translations[lang]['install-button'];
+                    button.disabled = false;
+                }
+            }
+        });
+
+        document.getElementById('installed-mods-list').addEventListener('click', async (event) => {
+            const button = event.target.closest('.mod-toggle-button.off');
+            if(button){
+                const lang = currentSettings.language.toLowerCase();
+                const name = button.dataset.modName;
+                const confirmed = await showConfirmationModal(
+                    translations[lang]['confirm-action-title'],
+                    translations[lang]['confirm-uninstall-mod-message'].replace('{modName}', name.replace('.mmpackage', ''))
+                );
+                if (confirmed) {
+                    button.textContent = 'uninstalling...';
+                    button.disabled = true;
+                    const result = await window.electronAPI.uninstallMod(name);
+                    if (result.success) {
+                        showMessageModal(translations[lang]['success-title'], translations[lang]['mod-uninstalled-success'].replace('{modName}', name.replace('.mmpackage', '')));
+                        await renderInstalledMods();
+                    } else {
+                        showMessageModal(translations[lang]['error-title'], `failed to uninstall: ${result.error}`);
+                        button.textContent = translations[lang]['uninstall-button'];
+                        button.disabled = false;
+                    }
+                }
+            }
+        });
+
+
+        // conversor tab listeners
+        document.getElementById('select-all-files')?.addEventListener('click', async () => {
+            const filePaths = await window.electronAPI.openFileDialog([{ name: 'game files', extensions: ['pak', 'sig', 'ucas', 'utoc'] }]);
+            const lang = currentSettings.language.toLowerCase();
+            if (filePaths && filePaths.length > 0) {
+                const extensions = new Set(filePaths.map(p => p.split('.').pop().toLowerCase()));
+                if (filePaths.length === 4 && extensions.has('pak') && extensions.has('sig') && extensions.has('ucas') && extensions.has('utoc')) {
+                    selectedConversionFiles = filePaths;
+                    allFilesPathInput.value = filePaths.map(p => p.split(/[\\/]/).pop()).join(', ');
+                } else {
+                    showMessageModal(translations[lang]['error-title'], translations[lang]['invalid-files-selected']);
+                    selectedConversionFiles = [];
+                    allFilesPathInput.value = '';
+                }
+                checkConvertButtonStatus();
+            }
+        });
+
+        modNameInput?.addEventListener('input', checkConvertButtonStatus);
+
+        convertButton?.addEventListener('click', async () => {
+            const modName = modNameInput?.value.trim();
+            const lang = currentSettings.language.toLowerCase();
+            if (!modName || selectedConversionFiles.length !== 4) return;
+            
+            convertButton.textContent = 'converting...';
+            convertButton.disabled = true;
+
+            const result = await window.electronAPI.convertToMmpackage(modName, selectedConversionFiles);
+            
+            if (result.success) {
+                showMessageModal(translations[lang]['success-title'], translations[lang]['conversion-success'].replace('{modName}', modName));
+                resetConversorForm();
+            } else {
+                showMessageModal(translations[lang]['error-title'], translations[lang]['conversion-error'].replace('{error}', result.error));
+            }
+            
+            convertButton.textContent = translations[lang]['convert-button'];
+            checkConvertButtonStatus();
+        });
+
+        // initial render
         await renderInstalledMods();
         activateTab('home-tab');
+
+        window.electronAPI.onLogMessage((logEntry) => {
+            log(logEntry.message, logEntry.type);
+        });
+        console.log("renderer: onlogmessage listener set up.");
+
+        checkConvertButtonStatus();
     } catch (error) {
-        console.error("Error during initialization:", error);
-        log(`Critical error during initialization: ${error.message}`, 'error');
+        console.error("error during initialization:", error);
+        log(`critical error during initialization: ${error.message}`, 'error');
     }
-
-    window.electronAPI.onLogMessage((logEntry) => {
-        log(logEntry.message, logEntry.type);
-    });
-    console.log("Renderer: onLogMessage listener set up.");
-
-    checkConvertButtonStatus();
 });
