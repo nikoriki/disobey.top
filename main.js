@@ -1,4 +1,4 @@
-// main.js - Electron Main Process
+// main.js - electron main process
 
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require('electron');
 const path = require('path');
@@ -8,32 +8,31 @@ const yauzl = require('yauzl');
 const yazl = require('yazl');
 const DiscordRPC = require('discord-rpc');
 
-// --- Application Details ---
+// --- application details ---
 const APP_VERSION = '';
 const UPDATE_CHECK_URL = '';
 const DOWNLOAD_URL = '';
-const DISCORD_CLIENT_ID = ''; // Used for Discord RPC
+const DISCORD_CLIENT_ID = ''; // used for discord rpc
 
-// --- Paths ---
+// --- paths ---
 const appDataPath = path.join(os.homedir(), 'AppData', 'Roaming', 'disobey.top');
 const settingsFilePath = path.join(appDataPath, 'settings.json');
 const installedModsFilePath = path.join(appDataPath, 'installed_mods.json');
 const crashLogPath = path.join(appDataPath, 'crashlog.txt');
-const themesPath = path.join(appDataPath, 'themes');
 
-// --- Crash Reporter ---
+// --- crash reporter ---
 process.on('uncaughtException', (error) => {
-    const errorMessage = `\n=====================================================\nUNCAUGHT EXCEPTION\nTimestamp: ${new Date().toISOString()}\nVersion: ${APP_VERSION}\n-----------------------------------------------------\nError: ${error.stack || error.toString()}\n=====================================================\n`;
+    const errorMessage = `\n=====================================================\nuncaught exception\ntimestamp: ${new Date().toISOString()}\nversion: ${APP_VERSION}\n-----------------------------------------------------\nerror: ${error.stack || error.toString()}\n=====================================================\n`;
     try {
         fs.appendFileSync(crashLogPath, errorMessage);
     } catch (logError) {
-        console.error('Failed to write to crash log:', logError);
+        console.error('failed to write to crash log:', logError);
     }
-    dialog.showErrorBox('Unhandled Exception', `A critical error occurred. A crash log has been saved to:\n${crashLogPath}`);
+    dialog.showErrorBox('unhandled exception', `a critical error occurred. a crash log has been saved to:\n${crashLogPath}`);
     app.quit();
 });
 
-// --- Discord RPC ---
+// --- discord rpc ---
 let rpc;
 const startTime = Date.now();
 
@@ -41,16 +40,16 @@ async function setActivity() {
     if (!rpc || !mainWindow) return;
 
     rpc.setActivity({
-        state: 'Modding DbD',
+        state: 'modding dbd',
         startTimestamp: startTime,
-        largeImageKey: 'iconomolon', // Asset name in your Discord App
+        largeImageKey: 'iconomolon', // asset name in your discord app
         largeImageText: 'https://disobey.top',
         instance: false,
         buttons: [{
-            label: 'Visit disobey.top',
+            label: 'visit disobey.top',
             url: 'https://disobey.top'
         }]
-    }).catch(err => console.error('Failed to set Discord activity:', err));
+    }).catch(err => console.error('failed to set discord activity:', err));
 }
 
 async function initRPC() {
@@ -58,13 +57,13 @@ async function initRPC() {
     try {
         rpc = new DiscordRPC.Client({ transport: 'ipc' });
         rpc.on('ready', () => {
-            logToConsole('Discord RPC connected.', 'system');
+            logToConsole('discord rpc connected.', 'system');
             setActivity();
             setInterval(setActivity, 15e3);
         });
         await rpc.login({ clientId: DISCORD_CLIENT_ID });
     } catch (error) {
-        logToConsole(`Discord RPC connection failed: ${error.message}`, 'error');
+        logToConsole(`discord rpc connection failed: ${error.message}`, 'error');
         rpc = null;
     }
 }
@@ -73,47 +72,10 @@ async function destroyRPC() {
     if (!rpc) return;
     await rpc.destroy();
     rpc = null;
-    logToConsole('Discord RPC disconnected.', 'system');
+    logToConsole('discord rpc disconnected.', 'system');
 }
 
-// --- Default Themes ---
-async function ensureDefaultThemes() {
-    try {
-        await fs.ensureDir(themesPath);
-        const whiteThemePath = path.join(themesPath, 'White.js');
-        const frostThemePath = path.join(themesPath, 'Frost.js');
-
-        const whiteThemeContent = `(function(applyTheme) {
-    applyTheme({
-        'bg-primary': '#ffffff', 'bg-secondary': '#f0f0f0', 'bg-tertiary': '#e0e0e0',
-        'bg-hover': '#d0d0d0', 'text-primary': '#000000', 'text-secondary': '#555555',
-        'accent-primary': '#000000', 'accent-primary-text': '#ffffff', 'accent-hover': '#333333',
-        'border-color': '#cccccc',
-    });
-});`;
-
-        const frostThemeContent = `(function(applyTheme) {
-    applyTheme({
-        'bg-primary': '#e6f0ff', 'bg-secondary': '#d9eaff', 'bg-tertiary': '#cce0ff',
-        'bg-hover': '#b3d1ff', 'text-primary': '#001a33', 'text-secondary': '#003366',
-        'accent-primary': '#0052cc', 'accent-primary-text': '#ffffff', 'accent-hover': '#003d99',
-        'border-color': '#b3d1ff',
-    });
-});`;
-
-        if (!await fs.pathExists(whiteThemePath)) {
-            await fs.writeFile(whiteThemePath, whiteThemeContent);
-        }
-        if (!await fs.pathExists(frostThemePath)) {
-            await fs.writeFile(frostThemePath, frostThemeContent);
-        }
-    } catch (error) {
-        logToConsole(`Failed to create default themes: ${error.message}`, 'error');
-    }
-}
-
-
-// --- Main Application Logic ---
+// --- main application logic ---
 const BASE_PAK_FILES_TEMPLATE = [ 
     "global.ucas", "global.utoc",
     "pakchunk0-{platformCode}.pak", "pakchunk0-{platformCode}.sig", "pakchunk0-{platformCode}.ucas", "pakchunk0-{platformCode}.utoc",
@@ -351,7 +313,7 @@ const BASE_PAK_FILES_TEMPLATE = [
     "pakchunk3732-{platformCode}.pak", "pakchunk3732-{platformCode}.sig", "pakchunk3732-{platformCode}.ucas", "pakchunk3732-{platformCode}.utoc",
     "pakchunk3733-{platformCode}.pak", "pakchunk3733-{platformCode}.sig", "pakchunk3733-{platformCode}.ucas", "pakchunk3733-{platformCode}.utoc",
     "pakchunk3734-{platformCode}.pak", "pakchunk3734-{platformCode}.sig", "pakchunk3734-{platformCode}.ucas", "pakchunk3734-{platformCode}.utoc",
-    "pakchunk3735-{platformCode}.pak", "pakchunk3735-{platformCode}.sig", "pakchunk3735-{platformCode}.ucas", "pakchunk3735-{platformCode}.utoc",
+    "pakchunk3735-{platformCode}.pak", "pakchunk3735-{platformCode}.sig", "pakchunk3735-{platformCode}.ucas", "pakchunk3535-{platformCode}.utoc",
     "pakchunk3736-{platformCode}.pak", "pakchunk3736-{platformCode}.sig", "pakchunk3736-{platformCode}.ucas", "pakchunk3736-{platformCode}.utoc",
     "pakchunk3737-{platformCode}.pak", "pakchunk3737-{platformCode}.sig", "pakchunk3737-{platformCode}.ucas", "pakchunk3737-{platformCode}.utoc",
     "pakchunk3738-{platformCode}.pak", "pakchunk3738-{platformCode}.sig", "pakchunk3738-{platformCode}.ucas", "pakchunk3738-{platformCode}.utoc",
@@ -402,42 +364,41 @@ let mainWindow;
 let appSettings = {
     modFolderPath: '',
     pakFolderPath: '',
-    language: 'English',
-    platform: 'Steam', // Default platform changed to Steam
-    theme: 'Default',
+    language: 'english',
+    platform: 'steam', // default platform changed to steam
     discordRpcEnabled: true
 };
 let installedMods = {}; // { modName: { originalFiles: [], installedFiles: [] } }
 
 function createWindow() {
     const preloadPath = path.join(__dirname, 'preload.js');
-    console.log(`Main: Preload script path: ${preloadPath}`); // Log preload path
+    console.log(`main: preload script path: ${preloadPath}`); // log preload path
 
     mainWindow = new BrowserWindow({
         width: 1100,
         height: 750,
         minWidth: 800,
         minHeight: 600,
-        frame: false, // <--- IMPORTANT: This removes the default title bar
+        frame: false, // <--- important: this removes the default title bar
         webPreferences: {
-            preload: preloadPath, // Ensure preload script is loaded
-            nodeIntegration: false, // Keep false for security
-            contextIsolation: true, // Keep true for security
-            sandbox: false // Disabled sandbox for debugging IPC issues
+            preload: preloadPath, // ensure preload script is loaded
+            nodeIntegration: false, // keep false for security
+            contextIsolation: true, // keep true for security
+            sandbox: false // disabled sandbox for debugging ipc issues
         },
-        icon: path.join(__dirname, 'build/icon.ico') // Set application icon
+        icon: path.join(__dirname, 'build/icon.ico') // set application icon
     });
 
-    // Define the application menu (optional, but good practice)
+    // define the application menu (optional, but good practice)
     const template = [
         {
-            label: 'File',
+            label: 'file',
             submenu: [
                 { role: 'quit' }
             ]
         },
         {
-            label: 'Edit',
+            label: 'edit',
             submenu: [
                 { role: 'undo' },
                 { role: 'redo' },
@@ -451,7 +412,7 @@ function createWindow() {
             ]
         },
         {
-            label: 'View',
+            label: 'view',
             submenu: [
                 { role: 'reload' },
                 { role: 'forceReload' },
@@ -461,9 +422,9 @@ function createWindow() {
                 { role: 'zoomOut' },
                 { type: 'separator' },
                 { role: 'togglefullscreen' },
-                { // Add DevTools toggle back for debugging
-                    label: 'Toggle Developer Tools',
-                    accelerator: process.platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I',
+                { // add devtools toggle back for debugging
+                    label: 'toggle developer tools',
+                    accelerator: process.platform === 'darwin' ? 'alt+command+i' : 'ctrl+shift+i',
                     click (item, focusedWindow) {
                         if (focusedWindow) focusedWindow.webContents.toggleDevTools();
                     }
@@ -471,7 +432,7 @@ function createWindow() {
             ]
         },
         {
-            label: 'Window',
+            label: 'window',
             submenu: [
                 { role: 'minimize' },
                 { role: 'zoom' },
@@ -485,60 +446,57 @@ function createWindow() {
 
     mainWindow.loadFile('index.html');
 
-    // Add a listener for when the renderer process has finished loading
+    // add a listener for when the renderer process has finished loading
     mainWindow.webContents.on('did-finish-load', () => {
-        console.log("Main: Renderer process has finished loading.");
-        logToConsole('Renderer process loaded.', 'system');
-        // Optionally open DevTools on start for easier debugging
+        console.log("main: renderer process has finished loading.");
+        logToConsole('renderer process loaded.', 'system');
+        // optionally open devtools on start for easier debugging
         // mainWindow.webContents.openDevTools();
     });
 }
 
-// Function to log messages to the console tab
+// function to log messages to the console tab
 function logToConsole(message, type = 'info') {
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('log-message', { message, type, timestamp: new Date().toLocaleTimeString() });
     }
 }
 
-// Initialize settings and installed mods on app ready
+// initialize settings and installed mods on app ready
 app.whenReady().then(async () => {
-    logToConsole('Application started.', 'system');
+    logToConsole('application started.', 'system');
 
-    // Ensure app data directory and themes directory exist
+    // ensure app data directory exist
     await fs.ensureDir(appDataPath);
-    await fs.ensureDir(themesPath);
-    await ensureDefaultThemes();
 
-
-    // Load settings
+    // load settings
     try {
         if (await fs.pathExists(settingsFilePath)) {
             const data = await fs.readFile(settingsFilePath, 'utf8');
             appSettings = { ...appSettings, ...JSON.parse(data) };
-            logToConsole('Settings loaded successfully.', 'system');
+            logToConsole('settings loaded successfully.', 'system');
         } else {
-            // Save default settings if file doesn't exist
+            // save default settings if file doesn't exist
             await fs.writeFile(settingsFilePath, JSON.stringify(appSettings, null, 2));
-            logToConsole('Default settings created.', 'system');
+            logToConsole('default settings created.', 'system');
         }
     } catch (error) {
-        logToConsole(`Error loading settings: ${error.message}`, 'error');
+        logToConsole(`error loading settings: ${error.message}`, 'error');
     }
 
-    // Load installed mods
+    // load installed mods
     try {
         if (await fs.pathExists(installedModsFilePath)) {
             const data = await fs.readFile(installedModsFilePath, 'utf8');
             installedMods = JSON.parse(data);
-            logToConsole('Installed mods data loaded successfully.', 'system');
+            logToConsole('installed mods data loaded successfully.', 'system');
         } else {
-            // Save empty installed mods if file doesn't exist
+            // save empty installed mods if file doesn't exist
             await fs.writeFile(installedModsFilePath, JSON.stringify(installedMods, null, 2));
-            logToConsole('Empty installed mods data created.', 'system');
+            logToConsole('empty installed mods data created.', 'system');
         }
     } catch (error) {
-        logToConsole(`Error loading installed mods: ${error.message}`, 'error');
+        logToConsole(`error loading installed mods: ${error.message}`, 'error');
     }
 
     if (appSettings.discordRpcEnabled) {
@@ -546,10 +504,14 @@ app.whenReady().then(async () => {
     }
 
     createWindow();
-
-    // Check for updates after window is created
-    checkForUpdates();
 });
+
+// wait for renderer to be ready before checking for updates
+ipcMain.on('renderer-ready', () => {
+    logToConsole('renderer is ready, checking for updates.', 'system');
+    checkForUpdates(false); // `false` indicates this is not a manual check
+});
+
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -563,117 +525,93 @@ app.on('activate', () => {
     }
 });
 
-// IPC Handlers for window controls
+// ipc handlers for window controls
 ipcMain.on('minimize-window', () => {
-    console.log("Main: Received minimize-window IPC."); // Debug log
+    console.log("main: received minimize-window ipc."); // debug log
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.minimize();
-        logToConsole('Window minimize request processed.', 'system');
+        logToConsole('window minimize request processed.', 'system');
     } else {
-        logToConsole('Failed to minimize window: mainWindow is invalid or destroyed.', 'error');
+        logToConsole('failed to minimize window: mainwindow is invalid or destroyed.', 'error');
     }
 });
 
 ipcMain.on('maximize-window', () => {
-    console.log("Main: Received maximize-window IPC."); // Debug log
+    console.log("main: received maximize-window ipc."); // debug log
     if (mainWindow && !mainWindow.isDestroyed()) {
         if (mainWindow.isMaximized()) {
             mainWindow.unmaximize();
-            logToConsole('Window unmaximized processed.', 'system');
+            logToConsole('window unmaximized processed.', 'system');
         } else {
             mainWindow.maximize();
-            logToConsole('Window maximized processed.', 'system');
+            logToConsole('window maximized processed.', 'system');
         }
     } else {
-        logToConsole('Failed to maximize/unmaximize window: mainWindow is invalid or destroyed.', 'error');
+        logToConsole('failed to maximize/unmaximize window: mainwindow is invalid or destroyed.', 'error');
     }
 });
 
 ipcMain.on('close-window', () => {
-    console.log("Main: Received close-window IPC."); // Debug log
+    console.log("main: received close-window ipc."); // debug log
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.close();
-        logToConsole('Window close request processed.', 'system');
+        logToConsole('window close request processed.', 'system');
     } else {
-        logToConsole('Failed to close window: mainWindow is invalid or destroyed.', 'error');
+        logToConsole('failed to close window: mainwindow is invalid or destroyed.', 'error');
     }
 });
 
 
-// Handle opening folder dialog
+// handle opening folder dialog
 ipcMain.handle('open-folder-dialog', async (event) => {
-    logToConsole('Opening folder selection dialog...', 'info');
+    logToConsole('opening folder selection dialog...', 'info');
     const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
         properties: ['openDirectory']
     });
     if (!canceled && filePaths.length > 0) {
-        logToConsole(`Folder selected: ${filePaths[0]}`, 'info');
+        logToConsole(`folder selected: ${filePaths[0]}`, 'info');
         return filePaths[0];
     }
-    logToConsole('Folder selection canceled.', 'info');
+    logToConsole('folder selection canceled.', 'info');
     return null;
 });
 
-// Handle opening file dialog
+// handle opening file dialog
 ipcMain.handle('open-file-dialog', async (event, filters) => {
-    logToConsole(`Opening file selection dialog with filters: ${JSON.stringify(filters)}`, 'info');
+    logToConsole(`opening file selection dialog with filters: ${JSON.stringify(filters)}`, 'info');
     const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow, {
-        properties: ['openFile', 'multiSelections'], // Allow multiple file selections
+        properties: ['openFile', 'multiSelections'], // allow multiple file selections
         filters: filters
     });
     if (!canceled && filePaths.length > 0) {
-        logToConsole(`Files selected: ${filePaths.join(', ')}`, 'info');
-        return filePaths; // Return array of file paths
+        logToConsole(`files selected: ${filePaths.join(', ')}`, 'info');
+        return filePaths; // return array of file paths
     }
-    logToConsole('File selection canceled.', 'info');
+    logToConsole('file selection canceled.', 'info');
     return null;
 });
 
 
-// Handle saving settings
+// handle saving settings
 ipcMain.handle('save-settings', async (event, settings) => {
     try {
         appSettings = { ...appSettings, ...settings };
         await fs.writeFile(settingsFilePath, JSON.stringify(appSettings, null, 2));
-        logToConsole('Settings saved successfully.', 'system');
+        logToConsole('settings saved successfully.', 'system');
         return { success: true };
     } catch (error) {
-        logToConsole(`Error saving settings: ${error.message}`, 'error');
+        logToConsole(`error saving settings: ${error.message}`, 'error');
         return { success: false, error: error.message };
     }
 });
 
-// Handle loading settings
+// handle loading settings
 ipcMain.handle('load-settings', async () => {
-    logToConsole('Loading settings...', 'info');
+    logToConsole('loading settings...', 'info');
     return appSettings;
 });
 
-// --- Theme Management IPC ---
-ipcMain.handle('get-themes', async () => {
-    try {
-        const files = await fs.readdir(themesPath);
-        return files.filter(file => file.endsWith('.js')).map(file => file.replace('.js', ''));
-    } catch (error) {
-        logToConsole(`Error reading themes folder: ${error.message}`, 'error');
-        return [];
-    }
-});
-
-ipcMain.handle('load-theme', async (event, themeName) => {
-    try {
-        const themeFilePath = path.join(themesPath, `${themeName}.js`);
-        if (await fs.pathExists(themeFilePath)) {
-            return await fs.readFile(themeFilePath, 'utf8');
-        }
-        return null;
-    } catch (error) {
-        logToConsole(`Error loading theme ${themeName}: ${error.message}`, 'error');
-        return null;
-    }
-});
-
-// --- Discord RPC IPC ---
+// --- discord rpc ipc ---
 ipcMain.on('set-rpc-status', (event, { enabled }) => {
     if (enabled) {
         initRPC();
@@ -683,55 +621,55 @@ ipcMain.on('set-rpc-status', (event, { enabled }) => {
 });
 
 
-// Handle getting installed mods
+// handle getting installed mods
 ipcMain.handle('get-installed-mods', async () => {
-    logToConsole('Retrieving installed mods data.', 'info');
+    logToConsole('retrieving installed mods data.', 'info');
     return installedMods;
 });
 
-// Handle getting available mods from mod folder
+// handle getting available mods from mod folder
 ipcMain.handle('get-available-mods', async (event) => {
-    logToConsole(`Scanning mod folder for .mmpackage files: ${appSettings.modFolderPath}`, 'info');
+    logToConsole(`scanning mod folder for .mmpackage files: ${appSettings.modFolderPath}`, 'info');
     if (!appSettings.modFolderPath) {
-        logToConsole('Mod folder path is not set.', 'warn');
+        logToConsole('mod folder path is not set.', 'warn');
         return [];
     }
     try {
         const files = await fs.readdir(appSettings.modFolderPath);
         const mmpackageFiles = files.filter(file => file.endsWith('.mmpackage'));
-        logToConsole(`Found ${mmpackageFiles.length} .mmpackage files.`, 'info');
+        logToConsole(`found ${mmpackageFiles.length} .mmpackage files.`, 'info');
         return mmpackageFiles.map(file => ({
             name: file,
             path: path.join(appSettings.modFolderPath, file),
-            installed: !!installedMods[file] // Check if this mod is already marked as installed
+            installed: !!installedMods[file] // check if this mod is already marked as installed
         }));
     } catch (error) {
-        logToConsole(`Error reading mod folder: ${error.message}`, 'error');
+        logToConsole(`error reading mod folder: ${error.message}`, 'error');
         return [];
     }
 });
 
 /**
- * Helper to get platform code based on user-friendly platform name.
- * This maps 'Steam', 'Microsoft', 'Epic Games' to their common PAK file suffixes.
- * @param {string} platform - The user-selected platform name.
- * @returns {string} The platform code used in PAK file naming.
+ * helper to get platform code based on user-friendly platform name.
+ * this maps 'steam', 'microsoft', 'epic games' to their common pak file suffixes.
+ * @param {string} platform - the user-selected platform name.
+ * @returns {string} the platform code used in pak file naming.
  */
 function getPlatformCode(platform) {
-    switch (platform) {
-        case 'Steam': return 'Windows';
-        case 'Microsoft': return 'WinGDK';
-        case 'Epic Games': return 'EGS';
+    switch (platform.toLowerCase()) {
+        case 'steam': return 'Windows';
+        case 'microsoft': return 'WinGDK';
+        case 'epic games': return 'EGS';
         default: return 'Windows';
     }
 }
 
-// Handle installing a mod
+// handle installing a mod
 ipcMain.handle('install-mod', async (event, modName, modPath) => {
-    logToConsole(`Attempting to install mod: ${modName} from ${modPath}`, 'info');
+    logToConsole(`attempting to install mod: ${modName} from ${modPath}`, 'info');
     if (!appSettings.pakFolderPath) {
-        logToConsole('PAK folder path is not set. Cannot install mod.', 'error');
-        return { success: false, error: 'PAK folder path is not set.' };
+        logToConsole('pak folder path is not set. cannot install mod.', 'error');
+        return { success: false, error: 'pak folder path is not set.' };
     }
 
     const platformCode = getPlatformCode(appSettings.platform);
@@ -739,10 +677,10 @@ ipcMain.handle('install-mod', async (event, modName, modPath) => {
     const tempExtractionPath = path.join(os.tmpdir(), 'disobeytop_mod_temp', modName.replace('.mmpackage', ''));
 
     try {
-        // Ensure temp directory is clean
+        // ensure temp directory is clean
         await fs.emptyDir(tempExtractionPath);
 
-        // Validate if it's a zip file
+        // validate if it's a zip file
         const buffer = Buffer.alloc(4);
         let fd;
         try {
@@ -753,23 +691,23 @@ ipcMain.handle('install-mod', async (event, modName, modPath) => {
         }
 
 
-        // Check for ZIP magic number (PK\x03\x04)
+        // check for zip magic number (pk\x03\x04)
         if (buffer.toString('hex') !== '504b0304') {
-            logToConsole(`Mod file '${modName}' is not a valid ZIP (.mmpackage) file. Cannot process.`, 'error');
-            return { success: false, error: 'Mod file is not a valid ZIP (.mmpackage) file.' };
+            logToConsole(`mod file '${modName}' is not a valid zip (.mmpackage) file. cannot process.`, 'error');
+            return { success: false, error: 'mod file is not a valid zip (.mmpackage) file.' };
         }
-        logToConsole(`Mod file '${modName}' is a valid ZIP file. Proceeding with extraction.`, 'info');
+        logToConsole(`mod file '${modName}' is a valid zip file. proceeding with extraction.`, 'info');
 
 
-        // Unzip the .mmpackage file
+        // unzip the .mmpackage file
         await new Promise((resolve, reject) => {
             yauzl.open(modPath, { lazyEntries: true }, (err, zipfile) => {
                 if (err) {
-                    logToConsole(`Error opening zip file ${modPath}: ${err.message}`, 'error');
+                    logToConsole(`error opening zip file ${modPath}: ${err.message}`, 'error');
                     return reject(err);
                 }
                 zipfile.on('entry', (entry) => {
-                    // Skip directories
+                    // skip directories
                     if (/\/$/.test(entry.fileName)) {
                         zipfile.readEntry();
                         return;
@@ -779,7 +717,7 @@ ipcMain.handle('install-mod', async (event, modName, modPath) => {
                     fs.ensureDir(path.dirname(entryPath)).then(() => {
                         zipfile.openReadStream(entry, (err, readStream) => {
                             if (err) {
-                                logToConsole(`Error reading zip entry ${entry.fileName}: ${err.message}`, 'error');
+                                logToConsole(`error reading zip entry ${entry.fileName}: ${err.message}`, 'error');
                                 return reject(err);
                             }
                             const writeStream = fs.createWriteStream(entryPath);
@@ -791,31 +729,31 @@ ipcMain.handle('install-mod', async (event, modName, modPath) => {
                     }).catch(reject);
                 });
                 zipfile.on('end', () => {
-                    logToConsole(`Successfully extracted ${modName} to ${tempExtractionPath}.`, 'info');
+                    logToConsole(`successfully extracted ${modName} to ${tempExtractionPath}.`, 'info');
                     resolve();
                 });
                 zipfile.on('error', reject);
-                zipfile.readEntry(); // Start reading entries
+                zipfile.readEntry(); // start reading entries
             });
         });
 
-        // Process extracted files
+        // process extracted files
         const filesToProcess = await fs.readdir(tempExtractionPath);
         for (const file of filesToProcess) {
             const originalFilePath = path.join(tempExtractionPath, file);
             const fileNameWithoutExt = path.parse(file).name;
             const fileExt = path.parse(file).ext;
 
-            // Check if the file name already contains a platform code pattern
-            // This regex looks for '-<platformCode>' before the extension
+            // check if the file name already contains a platform code pattern
+            // this regex looks for '-<platformcode>' before the extension
             const platformCodeRegex = /-[a-zA-Z0-9]+$/;
             let newFileName;
 
             if (platformCodeRegex.test(fileNameWithoutExt)) {
-                // If it has a platform code, replace it
+                // if it has a platform code, replace it
                 newFileName = `${fileNameWithoutExt.replace(platformCodeRegex, `-${platformCode}`)}${fileExt}`;
             } else {
-                // Otherwise, append the platform code before the extension
+                // otherwise, append the platform code before the extension
                 newFileName = `${fileNameWithoutExt}-${platformCode}${fileExt}`;
             }
 
@@ -823,45 +761,45 @@ ipcMain.handle('install-mod', async (event, modName, modPath) => {
 
             await fs.copy(originalFilePath, destinationPath);
             installedFiles.push({ original: file, installed: newFileName });
-            logToConsole(`Copied and renamed ${file} to ${newFileName} in PAK folder.`, 'info');
+            logToConsole(`copied and renamed ${file} to ${newFileName} in pak folder.`, 'info');
         }
 
-        // Update installed mods data
+        // update installed mods data
         installedMods[modName] = {
             originalName: modName,
             originalPath: modPath,
             installedFiles: installedFiles
         };
         await fs.writeFile(installedModsFilePath, JSON.stringify(installedMods, null, 2));
-        logToConsole(`Mod '${modName}' installed and saved.`, 'success');
+        logToConsole(`mod '${modName}' installed and saved.`, 'success');
         return { success: true };
 
     } catch (error) {
-        logToConsole(`Failed to install mod '${modName}': ${error.message}`, 'error');
+        logToConsole(`failed to install mod '${modName}': ${error.message}`, 'error');
         return { success: false, error: error.message };
     } finally {
-        // Clean up temporary extraction path
+        // clean up temporary extraction path
         try {
             await fs.remove(tempExtractionPath);
-            logToConsole(`Cleaned up temporary extraction path: ${tempExtractionPath}`, 'info');
+            logToConsole(`cleaned up temporary extraction path: ${tempExtractionPath}`, 'info');
         } catch (cleanupError) {
-            logToConsole(`Error cleaning up temp path ${tempExtractionPath}: ${cleanupError.message}`, 'error');
+            logToConsole(`error cleaning up temp path ${tempExtractionPath}: ${cleanupError.message}`, 'error');
         }
     }
 });
 
-// Handle uninstalling a mod
+// handle uninstalling a mod
 ipcMain.handle('uninstall-mod', async (event, modName) => {
-    logToConsole(`Attempting to uninstall mod: ${modName}`, 'info');
+    logToConsole(`attempting to uninstall mod: ${modName}`, 'info');
     if (!appSettings.pakFolderPath) {
-        logToConsole('PAK folder path is not set. Cannot uninstall mod.', 'error');
-        return { success: false, error: 'PAK folder path is not set.' };
+        logToConsole('pak folder path is not set. cannot uninstall mod.', 'error');
+        return { success: false, error: 'pak folder path is not set.' };
     }
 
     const modData = installedMods[modName];
     if (!modData) {
-        logToConsole(`Mod '${modName}' not found in installed mods list.`, 'warn');
-        return { success: false, error: 'Mod not found.' };
+        logToConsole(`mod '${modName}' not found in installed mods list.`, 'warn');
+        return { success: false, error: 'mod not found.' };
     }
 
     try {
@@ -869,35 +807,35 @@ ipcMain.handle('uninstall-mod', async (event, modName) => {
             const filePath = path.join(appSettings.pakFolderPath, fileInfo.installed);
             if (await fs.pathExists(filePath)) {
                 await fs.remove(filePath);
-                logToConsole(`Removed file: ${filePath}`, 'info');
+                logToConsole(`removed file: ${filePath}`, 'info');
             } else {
-                logToConsole(`File not found during uninstall, skipping: ${filePath}`, 'warn');
+                logToConsole(`file not found during uninstall, skipping: ${filePath}`, 'warn');
             }
         }
         delete installedMods[modName];
         await fs.writeFile(installedModsFilePath, JSON.stringify(installedMods, null, 2));
-        logToConsole(`Mod '${modName}' uninstalled successfully.`, 'success');
+        logToConsole(`mod '${modName}' uninstalled successfully.`, 'success');
         return { success: true };
     } catch (error) {
-        logToConsole(`Failed to uninstall mod '${modName}': ${error.message}`, 'error');
+        logToConsole(`failed to uninstall mod '${modName}': ${error.message}`, 'error');
         return { success: false, error: error.message };
     }
 });
 
-// Handle uninstalling all mods
+// handle uninstalling all mods
 ipcMain.handle('uninstall-all-mods', async (event) => {
-    logToConsole('Attempting to uninstall all non-base mods.', 'info');
+    logToConsole('attempting to uninstall all non-base mods.', 'info');
     if (!appSettings.pakFolderPath) {
-        logToConsole('PAK folder path is not set. Cannot uninstall all mods.', 'error');
-        return { success: false, error: 'PAK folder path is not set.' };
+        logToConsole('pak folder path is not set. cannot uninstall all mods.', 'error');
+        return { success: false, error: 'pak folder path is not set.' };
     }
 
     const platformCode = getPlatformCode(appSettings.platform);
-    // Generate the full list of base pak files for the current platform
+    // generate the full list of base pak files for the current platform
     const basePakFiles = BASE_PAK_FILES_TEMPLATE.map(file =>
         file.replace('{platformCode}', platformCode)
     );
-    logToConsole(`Base PAK files for platform ${appSettings.platform} (${platformCode}): ${basePakFiles.join(', ')}`, 'info');
+    logToConsole(`base pak files for platform ${appSettings.platform} (${platformCode}): ${basePakFiles.join(', ')}`, 'info');
 
 
     try {
@@ -905,96 +843,91 @@ ipcMain.handle('uninstall-all-mods', async (event) => {
         let uninstalledCount = 0;
 
         for (const file of filesInPakFolder) {
-            // Only remove files that are NOT in the basePakFiles list
+            // only remove files that are not in the basepakfiles list
             if (!basePakFiles.includes(file)) {
                 const filePath = path.join(appSettings.pakFolderPath, file);
                 await fs.remove(filePath);
-                logToConsole(`Removed non-base file: ${filePath}`, 'info');
+                logToConsole(`removed non-base file: ${filePath}`, 'info');
                 uninstalledCount++;
             } else {
-                logToConsole(`Skipping base file: ${file}`, 'info');
+                logToConsole(`skipping base file: ${file}`, 'info');
             }
         }
-        installedMods = {}; // Clear all installed mods from our tracking
+        installedMods = {}; // clear all installed mods from our tracking
         await fs.writeFile(installedModsFilePath, JSON.stringify(installedMods, null, 2));
-        logToConsole(`Uninstalled ${uninstalledCount} non-base mods.`, 'success');
+        logToConsole(`uninstalled ${uninstalledCount} non-base mods.`, 'success');
         return { success: true, count: uninstalledCount };
     } catch (error) {
-        logToConsole(`Failed to uninstall all mods: ${error.message}`, 'error');
+        logToConsole(`failed to uninstall all mods: ${error.message}`, 'error');
         return { success: false, error: error.message };
     }
 });
 
-// Handle converting files to .mmpackage
+// handle converting files to .mmpackage
 ipcMain.handle('convert-to-mmpackage', async (event, modName, filePaths) => {
-    logToConsole(`Attempting to convert files to .mmpackage: ${modName}`, 'info');
+    logToConsole(`attempting to convert files to .mmpackage: ${modName}`, 'info');
     if (!appSettings.modFolderPath) {
-        logToConsole('Mod folder path is not set. Cannot convert files.', 'error');
-        return { success: false, error: 'Mod folder path is not set.' };
+        logToConsole('mod folder path is not set. cannot convert files.', 'error');
+        return { success: false, error: 'mod folder path is not set.' };
     }
-    // Validate file extensions
+    // validate file extensions
     const requiredExtensions = ['.pak', '.sig', '.ucas', '.utoc'];
-    const foundExtensions = new Set(filePaths.map(p => path.extname(p).toLowerCase())); // Use path directly
+    const foundExtensions = new Set(filePaths.map(p => path.extname(p).toLowerCase())); // use path directly
 
     for (const ext of requiredExtensions) {
         if (!foundExtensions.has(ext)) {
-            logToConsole(`Missing required file type for conversion: ${ext}`, 'error');
-            return { success: false, error: `Missing required file type: ${ext}. Please select one of each: .pak, .sig, .ucas, and one .utoc.` };
+            logToConsole(`missing required file type for conversion: ${ext}`, 'error');
+            return { success: false, error: `missing required file type: ${ext}. please select one of each: .pak, .sig, .ucas, and one .utoc.` };
         }
     }
     if (filePaths.length !== 4) {
-        logToConsole('Invalid number of files provided for conversion. Expected 4 (pak, sig, ucas, utoc).', 'error');
-        return { success: false, error: 'Invalid number of files selected. Please select one .pak, one .sig, one .ucas, and one .utoc file.' };
+        logToConsole('invalid number of files provided for conversion. expected 4 (pak, sig, ucas, utoc).', 'error');
+        return { success: false, error: 'invalid number of files selected. please select one .pak, one .sig, one .ucas, and one .utoc file.' };
     }
 
 
-    const outputFilePath = path.join(appSettings.modFolderPath, `${modName}.mmpackage`); // Use path directly
+    const outputFilePath = path.join(appSettings.modFolderPath, `${modName}.mmpackage`); // use path directly
     const zipfile = new yazl.ZipFile();
 
     try {
         for (const filePath of filePaths) {
-            const fileName = path.basename(filePath); // Use path directly
+            const fileName = path.basename(filePath); // use path directly
             zipfile.addFile(filePath, fileName);
-            logToConsole(`Adding ${fileName} to zip archive.`, 'info');
+            logToConsole(`adding ${fileName} to zip archive.`, 'info');
         }
 
         await new Promise((resolve, reject) => {
             zipfile.outputStream.pipe(fs.createWriteStream(outputFilePath))
                 .on('close', () => {
-                    logToConsole(`Successfully created .mmpackage file: ${outputFilePath}`, 'success');
+                    logToConsole(`successfully created .mmpackage file: ${outputFilePath}`, 'success');
                     resolve();
                 })
                 .on('error', (err) => {
-                    logToConsole(`Error writing zip file: ${err.message}`, 'error');
+                    logToConsole(`error writing zip file: ${err.message}`, 'error');
                     reject(err);
                 });
             zipfile.end();
         });
         return { success: true };
     } catch (error) {
-        logToConsole(`Failed to convert files to .mmpackage: ${error.message}`, 'error');
+        logToConsole(`failed to convert files to .mmpackage: ${error.message}`, 'error');
         return { success: false, error: error.message };
     }
 });
 
 
-// Function to check for updates
-async function checkForUpdates() {
-    logToConsole('Checking for updates...', 'system');
+// function to check for updates
+async function checkForUpdates(isManual) {
+    logToConsole('checking for updates...', 'system');
     try {
         const response = await fetch(UPDATE_CHECK_URL);
-        console.log(`Main: Update check URL: ${UPDATE_CHECK_URL}`); // Debug log
-        console.log(`Main: Update check response status: ${response.status}`); // Debug log
-
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`http error! status: ${response.status}`);
         }
         const latestVersion = (await response.text()).trim();
-        console.log(`Main: Fetched latest version: '${latestVersion}'`); // Debug log
-        console.log(`Main: Current app version: '${APP_VERSION}'`); // Debug log
 
         if (latestVersion !== APP_VERSION) {
-            logToConsole(`New version available: ${latestVersion}. Current version: ${APP_VERSION}`, 'system');
+            logToConsole(`new version available: ${latestVersion}. current version: ${APP_VERSION}`, 'system');
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('update-available', {
                     latestVersion: latestVersion,
@@ -1002,38 +935,39 @@ async function checkForUpdates() {
                 });
             }
         } else {
-            logToConsole('Application is up to date.', 'system');
+            logToConsole('application is up to date.', 'system');
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('no-update-available', {
-                    currentVersion: APP_VERSION
+                    currentVersion: APP_VERSION,
+                    isManual: isManual
                 });
             }
         }
     } catch (error) {
-        logToConsole(`Failed to check for updates: ${error.message}`, 'error');
-        console.error(`Main: Error checking for updates: ${error.message}`); // Debug log
+        logToConsole(`failed to check for updates: ${error.message}`, 'error');
         if (mainWindow && !mainWindow.isDestroyed()) {
             mainWindow.webContents.send('no-update-available', {
                 currentVersion: APP_VERSION,
-                error: error.message
+                error: error.message,
+                isManual: isManual
             });
         }
     }
 }
 
-// IPC handler to manually trigger update check
-ipcMain.handle('trigger-update-check', async () => {
-    logToConsole('Manual update check triggered by renderer.', 'system');
-    await checkForUpdates();
+// ipc handler to manually trigger update check
+ipcMain.on('trigger-update-check', () => {
+    logToConsole('manual update check triggered by renderer.', 'system');
+    checkForUpdates(true); // `true` indicates this is a manual check
 });
 
-// Handle opening external URL for update
+// handle opening external url for update
 ipcMain.handle('open-update-url', async () => {
-    logToConsole(`Opening update URL: ${DOWNLOAD_URL}`, 'info');
+    logToConsole(`opening update url: ${DOWNLOAD_URL}`, 'info');
     await shell.openExternal(DOWNLOAD_URL);
 });
 
-// Handle getting app version
+// handle getting app version
 ipcMain.handle('get-app-version', () => {
     return APP_VERSION;
 });
