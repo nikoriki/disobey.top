@@ -6,19 +6,23 @@ const fs = require('fs-extra');
 const os = require('os');
 const yauzl = require('yauzl');
 const yazl = require('yazl');
+const AdmZip = require('adm-zip');
 const DiscordRPC = require('discord-rpc');
+const { pipeline } = require('stream/promises');
 
 // --- application details ---
 const APP_VERSION = '';
 const UPDATE_CHECK_URL = '';
-const DOWNLOAD_URL = '';
 const DISCORD_CLIENT_ID = ''; // used for discord rpc
+const https = require('https');
+
 
 // --- paths ---
 const appDataPath = path.join(os.homedir(), 'AppData', 'Roaming', 'disobey.top');
 const settingsFilePath = path.join(appDataPath, 'settings.json');
 const installedModsFilePath = path.join(appDataPath, 'installed_mods.json');
 const crashLogPath = path.join(appDataPath, 'crashlog.txt');
+const backupPath = path.join(appDataPath, 'backups');
 
 // --- crash reporter ---
 process.on('uncaughtException', (error) => {
@@ -40,14 +44,14 @@ async function setActivity() {
     if (!rpc || !mainWindow) return;
 
     rpc.setActivity({
-        state: 'modding dbd',
-        startTimestamp: startTime,
-        largeImageKey: 'iconomolon', // asset name in your discord app
-        largeImageText: 'https://disobey.top',
+        state: '',
+        startTimestamp: ,
+        largeImageKey: '',
+        largeImageText: '',
         instance: false,
         buttons: [{
-            label: 'visit disobey.top',
-            url: 'https://disobey.top'
+            label: '',
+            url: ''
         }]
     }).catch(err => console.error('failed to set discord activity:', err));
 }
@@ -525,6 +529,32 @@ app.on('activate', () => {
     }
 });
 
+
+ipcMain.on('auto-update-and-exit', (event, url) => {
+    const tempPath = path.join(os.tmpdir(), `disobeytop_update_${Date.now()}.exe`);
+    const file = fs.createWriteStream(tempPath);
+
+    https.get(url, (response) => {
+        if (response.statusCode !== 200) {
+            dialog.showErrorBox('Update Error', `Failed to download update. HTTP status: ${response.statusCode}`);
+            return;
+        }
+        response.pipe(file);
+        file.on('finish', () => {
+            file.close(() => {
+                shell.openPath(tempPath).then(() => {
+                    app.quit();
+                }).catch((err) => {
+                    dialog.showErrorBox('Update Error', 'Failed to launch installer: ' + err.message);
+                });
+            });
+        });
+    }).on('error', (err) => {
+        fs.unlink(tempPath, () => {});
+        dialog.showErrorBox('Update Error', 'Failed to download the update: ' + err.message);
+    });
+});
+
 // ipc handlers for window controls
 ipcMain.on('minimize-window', () => {
     console.log("main: received minimize-window ipc."); // debug log
@@ -627,6 +657,76 @@ ipcMain.handle('get-installed-mods', async () => {
     return installedMods;
 });
 
+// handle mod conflict detection
+ipcMain.handle('get-mod-conflicts', async () => {
+    // map: installed file name -> [modName, ...]
+    const fileToMods = {};
+    for (const [modName, modData] of Object.entries(installedMods)) {
+        if (modData.installedFiles) {
+            for (const fileObj of modData.installedFiles) {
+                const fname = fileObj.installed;
+                if (!fileToMods[fname]) fileToMods[fname] = [];
+                fileToMods[fname].push(modName);
+            }
+        }
+    }
+    // find files installed by more than one mod
+    const conflicts = [];
+    for (const [fname, mods] of Object.entries(fileToMods)) {
+        if (mods.length > 1) {
+            conflicts.push({ file: fname, mods });
+        }
+    }
+    return conflicts;
+});
+
+// handle getting mod history
+ipcMain.handle('get-mod-history', async (event, modName) => {
+    let history = {};
+    try { history = JSON.parse(await fs.readFile(modHistoryFilePath, 'utf8')); } catch { history = {}; }
+    return history[modName] || [];
+});
+
+// handle reading metadata.json from a .mmpackage
+ipcMain.handle('read-mod-metadata', async (event, modName) => {
+    try {
+        const modPath = path.join(appSettings.modFolderPath, modName);
+        let metadata = null;
+        await new Promise((resolve, reject) => {
+            yauzl.open(modPath, { lazyEntries: true }, (err, zipfile) => {
+                if (err) return resolve(); // no metadata if error
+                let found = false;
+                zipfile.on('entry', entry => {
+                    if (entry.fileName === 'metadata.json') {
+                        found = true;
+                        zipfile.openReadStream(entry, (err, readStream) => {
+                            if (err) return resolve();
+                            let data = '';
+                            readStream.on('data', chunk => data += chunk);
+                            readStream.on('end', () => {
+                                try {
+                                    metadata = JSON.parse(data);
+                                } catch {}
+                                resolve();
+                            });
+                        });
+                    } else {
+                        zipfile.readEntry();
+                    }
+                });
+                zipfile.on('end', () => {
+                    if (!found) resolve();
+                });
+                zipfile.on('error', () => resolve());
+                zipfile.readEntry();
+            });
+        });
+        return { success: true, metadata };
+    } catch (error) {
+        return { success: false, error: error.message };
+    }
+});
+
 // handle getting available mods from mod folder
 ipcMain.handle('get-available-mods', async (event) => {
     logToConsole(`scanning mod folder for .mmpackage files: ${appSettings.modFolderPath}`, 'info');
@@ -638,15 +738,81 @@ ipcMain.handle('get-available-mods', async (event) => {
         const files = await fs.readdir(appSettings.modFolderPath);
         const mmpackageFiles = files.filter(file => file.endsWith('.mmpackage'));
         logToConsole(`found ${mmpackageFiles.length} .mmpackage files.`, 'info');
-        return mmpackageFiles.map(file => ({
-            name: file,
-            path: path.join(appSettings.modFolderPath, file),
-            installed: !!installedMods[file] // check if this mod is already marked as installed
+        // For each .mmpackage, try to extract metadata.json
+        const mods = await Promise.all(mmpackageFiles.map(async file => {
+            const modPath = path.join(appSettings.modFolderPath, file);
+            let metadata = null;
+            try {
+                await new Promise((resolve, reject) => {
+                    yauzl.open(modPath, { lazyEntries: true }, (err, zipfile) => {
+                        if (err) return resolve(); // skip metadata if error
+                        let found = false;
+                        zipfile.on('entry', entry => {
+                            if (entry.fileName === 'metadata.json') {
+                                found = true;
+                                zipfile.openReadStream(entry, (err, readStream) => {
+                                    if (err) return resolve();
+                                    let data = '';
+                                    readStream.on('data', chunk => data += chunk);
+                                    readStream.on('end', () => {
+                                        try {
+                                            metadata = JSON.parse(data);
+                                        } catch {}
+                                        resolve();
+                                    });
+                                });
+                            } else {
+                                zipfile.readEntry();
+                            }
+                        });
+                        zipfile.on('end', () => {
+                            if (!found) resolve();
+                        });
+                        zipfile.on('error', () => resolve());
+                        zipfile.readEntry();
+                    });
+                });
+            } catch {}
+            return {
+                name: file,
+                path: modPath,
+                installed: !!installedMods[file],
+                metadata: metadata
+            };
         }));
+        return mods;
     } catch (error) {
         logToConsole(`error reading mod folder: ${error.message}`, 'error');
         return [];
     }
+});
+
+let modsWatcher = null;
+function setupModsWatcher() {
+    if (modsWatcher) {
+        modsWatcher.close();
+        modsWatcher = null;
+    }
+    if (!appSettings.modFolderPath) return;
+    try {
+        modsWatcher = fs.watch(appSettings.modFolderPath, { persistent: true }, (eventType, filename) => {
+            if (filename && filename.endsWith('.mmpackage')) {
+                if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.send('mods-folder-changed');
+                }
+            }
+        });
+    } catch (err) {
+        logToConsole('Failed to watch mods folder: ' + err.message, 'error');
+    }
+}
+app.whenReady().then(() => setupModsWatcher());
+
+// Patch: update watcher if modFolderPath changes
+ipcMain.handle('set-mod-folder-path', async (event, folderPath) => {
+    appSettings.modFolderPath = folderPath;
+    setupModsWatcher();
+    return { success: true };
 });
 
 /**
@@ -662,6 +828,16 @@ function getPlatformCode(platform) {
         case 'epic games': return 'EGS';
         default: return 'Windows';
     }
+}
+
+// helper to log mod history
+const modHistoryFilePath = path.join(appDataPath, 'mod_history.json');
+async function logModHistory(modName, action) {
+    let history = {};
+    try { history = JSON.parse(await fs.readFile(modHistoryFilePath, 'utf8')); } catch { history = {}; }
+    if (!history[modName]) history[modName] = [];
+    history[modName].push({ action, timestamp: new Date().toISOString() });
+    await fs.writeFile(modHistoryFilePath, JSON.stringify(history, null, 2));
 }
 
 // handle installing a mod
@@ -740,20 +916,22 @@ ipcMain.handle('install-mod', async (event, modName, modPath) => {
         // process extracted files
         const filesToProcess = await fs.readdir(tempExtractionPath);
         for (const file of filesToProcess) {
+            // only process pakchunk files
+            if (!/^pakchunk\d+(-[a-zA-Z0-9]+)?\.(pak|sig|ucas|utoc)$/i.test(file)) {
+                logToConsole(`skipping non-pakchunk file: ${file}`, 'info');
+                continue;
+            }
             const originalFilePath = path.join(tempExtractionPath, file);
             const fileNameWithoutExt = path.parse(file).name;
             const fileExt = path.parse(file).ext;
 
             // check if the file name already contains a platform code pattern
-            // this regex looks for '-<platformcode>' before the extension
             const platformCodeRegex = /-[a-zA-Z0-9]+$/;
             let newFileName;
 
             if (platformCodeRegex.test(fileNameWithoutExt)) {
-                // if it has a platform code, replace it
                 newFileName = `${fileNameWithoutExt.replace(platformCodeRegex, `-${platformCode}`)}${fileExt}`;
             } else {
-                // otherwise, append the platform code before the extension
                 newFileName = `${fileNameWithoutExt}-${platformCode}${fileExt}`;
             }
 
@@ -771,6 +949,7 @@ ipcMain.handle('install-mod', async (event, modName, modPath) => {
             installedFiles: installedFiles
         };
         await fs.writeFile(installedModsFilePath, JSON.stringify(installedMods, null, 2));
+        await logModHistory(modName, 'installed');
         logToConsole(`mod '${modName}' installed and saved.`, 'success');
         return { success: true };
 
@@ -814,6 +993,7 @@ ipcMain.handle('uninstall-mod', async (event, modName) => {
         }
         delete installedMods[modName];
         await fs.writeFile(installedModsFilePath, JSON.stringify(installedMods, null, 2));
+        await logModHistory(modName, 'uninstalled');
         logToConsole(`mod '${modName}' uninstalled successfully.`, 'success');
         return { success: true };
     } catch (error) {
@@ -862,59 +1042,6 @@ ipcMain.handle('uninstall-all-mods', async (event) => {
         return { success: false, error: error.message };
     }
 });
-
-// handle converting files to .mmpackage
-ipcMain.handle('convert-to-mmpackage', async (event, modName, filePaths) => {
-    logToConsole(`attempting to convert files to .mmpackage: ${modName}`, 'info');
-    if (!appSettings.modFolderPath) {
-        logToConsole('mod folder path is not set. cannot convert files.', 'error');
-        return { success: false, error: 'mod folder path is not set.' };
-    }
-    // validate file extensions
-    const requiredExtensions = ['.pak', '.sig', '.ucas', '.utoc'];
-    const foundExtensions = new Set(filePaths.map(p => path.extname(p).toLowerCase())); // use path directly
-
-    for (const ext of requiredExtensions) {
-        if (!foundExtensions.has(ext)) {
-            logToConsole(`missing required file type for conversion: ${ext}`, 'error');
-            return { success: false, error: `missing required file type: ${ext}. please select one of each: .pak, .sig, .ucas, and one .utoc.` };
-        }
-    }
-    if (filePaths.length !== 4) {
-        logToConsole('invalid number of files provided for conversion. expected 4 (pak, sig, ucas, utoc).', 'error');
-        return { success: false, error: 'invalid number of files selected. please select one .pak, one .sig, one .ucas, and one .utoc file.' };
-    }
-
-
-    const outputFilePath = path.join(appSettings.modFolderPath, `${modName}.mmpackage`); // use path directly
-    const zipfile = new yazl.ZipFile();
-
-    try {
-        for (const filePath of filePaths) {
-            const fileName = path.basename(filePath); // use path directly
-            zipfile.addFile(filePath, fileName);
-            logToConsole(`adding ${fileName} to zip archive.`, 'info');
-        }
-
-        await new Promise((resolve, reject) => {
-            zipfile.outputStream.pipe(fs.createWriteStream(outputFilePath))
-                .on('close', () => {
-                    logToConsole(`successfully created .mmpackage file: ${outputFilePath}`, 'success');
-                    resolve();
-                })
-                .on('error', (err) => {
-                    logToConsole(`error writing zip file: ${err.message}`, 'error');
-                    reject(err);
-                });
-            zipfile.end();
-        });
-        return { success: true };
-    } catch (error) {
-        logToConsole(`failed to convert files to .mmpackage: ${error.message}`, 'error');
-        return { success: false, error: error.message };
-    }
-});
-
 
 // function to check for updates
 async function checkForUpdates(isManual) {
